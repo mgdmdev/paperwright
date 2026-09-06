@@ -1,37 +1,44 @@
-import { isValidElement } from "react";
+import { createContext, useContext } from "react";
 import type { DependencyList, ReactNode } from "react";
 
 import { professionalTheme } from "../../themes/professional";
 
 export type PdfcnTheme = typeof professionalTheme;
 
-let serializedTheme = professionalTheme;
-
 export interface PdfcnThemeProviderProps {
   theme?: PdfcnTheme;
   children: ReactNode;
 }
 
-const renderForSerializer = (
-  children: ReactNode,
-  theme: PdfcnTheme
-): ReactNode => {
-  serializedTheme = theme;
+/**
+ * Takumi walks JSX with a hook dispatcher of its own, so React context works there and nested
+ * providers scope correctly. The module-level fallback only serves a walker that calls
+ * components bare, where `useContext` throws.
+ */
+export const PdfcnThemeContext = createContext<PdfcnTheme>(professionalTheme);
 
-  if (!isValidElement(children) || typeof children.type !== "function") {
-    return children;
-  }
-
-  return (children.type as (props: unknown) => ReactNode)(children.props);
-};
+let fallbackTheme: PdfcnTheme = professionalTheme;
 
 export const PdfcnThemeProvider = ({
   theme,
   children,
-}: PdfcnThemeProviderProps) =>
-  renderForSerializer(children, theme ?? professionalTheme);
+}: PdfcnThemeProviderProps) => {
+  const resolved = theme ?? professionalTheme;
+  fallbackTheme = resolved;
+  return (
+    <PdfcnThemeContext.Provider value={resolved}>
+      {children}
+    </PdfcnThemeContext.Provider>
+  );
+};
 
-export const usePdfcnTheme = (): PdfcnTheme => serializedTheme;
+export const usePdfcnTheme = (): PdfcnTheme => {
+  try {
+    return useContext(PdfcnThemeContext);
+  } catch {
+    return fallbackTheme;
+  }
+};
 
 export const useSafeMemo = <T,>(factory: () => T, _deps: DependencyList): T =>
   factory();

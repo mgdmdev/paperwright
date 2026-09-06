@@ -26,7 +26,10 @@ export interface Filter {
   args?: Record<string, string>;
 }
 
-/** A reference into the host's data, e.g. `employee.name` or `lines[].amount` inside a repeat. */
+/**
+ * A reference into the host's data, e.g. `employee.name` or `line.amount` inside a repeat.
+ * A plain string can carry the same thing inline as `{{ employee.name | upper }}`.
+ */
 export interface Binding {
   var: string;
   filters?: Filter[];
@@ -172,7 +175,7 @@ export interface SignatureBlock extends BlockBase {
   assetHash?: string;
   slotId?: string;
   signer: { name?: BindingOrString; title?: BindingOrString; date?: BindingOrString };
-  variant?: 'single' | 'double' | 'inline';
+  variant?: 'single' | 'inline';
 }
 
 export interface WatermarkBlock extends BlockBase {
@@ -250,5 +253,8 @@ export interface ResolvedDocument {
   locale: string;
 }
 
-/** A block after resolution: the same shape, with every BindingOrString replaced by a string and repeat/if expanded away. */
-export type ResolvedBlock = Exclude<Block, RepeatBlock | IfBlock>;
+/**
+ * A block after resolution: the same shape with every BindingOrString replaced by a string.
+ * Repeat and if are expanded away and a dataTable becomes a table with its rows filled in.
+ */
+export type ResolvedBlock = Exclude<Block, RepeatBlock | IfBlock | DataTableBlock>;

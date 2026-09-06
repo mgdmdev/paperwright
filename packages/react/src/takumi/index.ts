@@ -1,16 +1,23 @@
-// Barrel for the takumi base. Blocks (invoices, reports) are examples of composition and are exported too.
+// Generated barrel: components, theme provider and primitives of the takumi base.
+// Blocks (sample documents) are intentionally not exported.
+export * as primitives from './lib/pdf-primitives';
+export * from './lib/resolve-color';
 export * from './components/alert/alert';
 export * from './components/badge/badge';
 export * from './components/card/card';
 export * from './components/data-table/data-table';
+export * from './components/data-table/data-table.types';
 export * from './components/divider/divider';
 export * from './components/form/form';
+export * from './components/form/form.types';
 export * from './components/graph/graph';
+export * from './components/graph/graph.types';
 export * from './components/heading/heading';
 export * from './components/keep-together/keep-together';
 export * from './components/key-value/key-value';
 export * from './components/link/link';
 export * from './components/list/list';
+export * from './components/list/list.types';
 export * from './components/page-break/page-break';
 export * from './components/page-footer/page-footer';
 export * from './components/page-header/page-header';
@@ -21,17 +28,8 @@ export * from './components/section/section';
 export * from './components/signature/signature';
 export * from './components/stack/stack';
 export * from './components/table/table';
+export * from './components/table/table.types';
+export { createTableStyles } from './components/table/table.styles';
 export * from './components/text/text';
-export * from './components/watermark/watermark';
 export * from './components/theme-provider';
-export * from './lib/pdf-primitives';
-export * from './blocks/invoice-classic/invoice-classic';
-export * from './blocks/invoice-consultant/invoice-consultant';
-export * from './blocks/invoice-corporate/invoice-corporate';
-export * from './blocks/invoice-creative/invoice-creative';
-export * from './blocks/invoice-minimal/invoice-minimal';
-export * from './blocks/invoice-modern/invoice-modern';
-export * from './blocks/report-financial/report-financial';
-export * from './blocks/report-marketing/report-layout';
-export * from './blocks/report-operations/report-layout';
-export * from './blocks/report-security/report-layout';
+export * from './components/watermark/watermark';

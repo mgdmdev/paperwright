@@ -14,11 +14,12 @@
   },
   "files": [
     "dist",
+    "fonts",
     "README.md"
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts --format esm --dts --clean --external react",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },
@@ -27,6 +28,17 @@
   },
   "dependencies": {
     "@docform/model": "workspace:*",
-    "@docform/react": "workspace:*"
+    "@docform/react": "workspace:*",
+    "@formepdf/core": "0.20.0",
+    "@formepdf/react": "0.20.0",
+    "takumi-pdf": "0.14.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@takumi-rs/helpers": "2.13.6",
+    "react": "^19.2.8",
+    "takumi-pdf-011": "npm:takumi-pdf@0.11.0"
   }
 }

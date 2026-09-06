@@ -1,0 +1,18 @@
+{
+  "status": "final",
+  "generatedOn": "2026-09-05",
+  "period": { "label": "August 2026", "paidOn": "2026-08-28" },
+  "employee": { "name": "Kwame Boateng", "number": "NW-0087", "department": "Design" },
+  "earnings": [
+    { "label": "Basic salary", "amount": 6200 },
+    { "label": "Transport allowance", "amount": 450 },
+    { "label": "Overtime, 6 h", "amount": 312.5 }
+  ],
+  "deductions": [
+    { "label": "Income tax (PAYE)", "amount": 1184.6 },
+    { "label": "SSNIT tier 1 (5.5%)", "amount": 341 },
+    { "label": "Pension tier 2 (5%)", "amount": 310 }
+  ],
+  "totals": { "gross": 6962.5, "deductions": 1835.6, "net": 5126.9 },
+  "ytd": { "gross": 55700, "tax": 9476.8, "pension": 5570 }
+}

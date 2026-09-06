@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import {
   usePdfcnTheme,
   useSafeMemo,
@@ -22,6 +24,8 @@ export interface SignatureSigner {
   name?: string;
   title?: string;
   date?: string;
+  /** A captured signature drawn above the line, e.g. a PdfImage of a stored signature. */
+  image?: ReactNode;
 }
 
 /**
@@ -39,6 +43,8 @@ export interface PdfSignatureBlockProps {
   name?: string;
   title?: string;
   date?: string;
+  /** A captured signature for the single and inline variants; see {@link SignatureSigner.image}. */
+  image?: ReactNode;
   signers?: [SignatureSigner, SignatureSigner];
   style?: Style;
 }
@@ -86,6 +92,12 @@ const createSignatureStyles = (t: PdfcnTheme) => {
       flexWrap: "wrap",
       gap: spacing[3],
     },
+    imageBox: {
+      alignItems: "flex-start",
+      height: spacing[12],
+      justifyContent: "flex-end",
+      marginBottom: spacing[0.5],
+    },
     label: {
       color: t.colors.mutedForeground,
       fontFamily: t.typography.body.fontFamily,
@@ -121,7 +133,10 @@ const renderSignerBlock = (
     {signer.label ? (
       <PDFText style={styles.label}>{signer.label}</PDFText>
     ) : null}
-    <View style={styles.line} />
+    {signer.image ? (
+      <View style={styles.imageBox}>{signer.image}</View>
+    ) : null}
+    <View style={signer.image ? [styles.line, { minHeight: 0 }] : styles.line} />
     {signer.name ? <PDFText style={styles.name}>{signer.name}</PDFText> : null}
     {signer.title ? (
       <PDFText style={styles.titleText}>{signer.title}</PDFText>
@@ -138,6 +153,7 @@ export const PdfSignatureBlock = ({
   name,
   title,
   date,
+  image,
   signers,
   style,
 }: PdfSignatureBlockProps) => {
@@ -153,7 +169,11 @@ export const PdfSignatureBlock = ({
       <View wrap={false} style={containerStyles as never}>
         <View style={styles.inlineRow}>
           <PDFText style={styles.inlineLabel}>{`${label}:`}</PDFText>
-          <View style={styles.inlineLine} />
+          {image ? (
+            <View style={styles.imageBox}>{image}</View>
+          ) : (
+            <View style={styles.inlineLine} />
+          )}
           {name ? <PDFText style={styles.inlineName}>{name}</PDFText> : null}
         </View>
       </View>
@@ -177,7 +197,7 @@ export const PdfSignatureBlock = ({
 
   return (
     <View wrap={false} style={containerStyles as never}>
-      {renderSignerBlock({ date, label, name, title }, styles)}
+      {renderSignerBlock({ date, image, label, name, title }, styles)}
     </View>
   );
 };

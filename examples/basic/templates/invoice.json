@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "id": "invoice",
+  "name": "Invoice",
+  "locale": "en-GB",
+  "theme": "professional",
+  "page": {
+    "size": "A4",
+    "orientation": "portrait",
+    "margins": {
+      "top": 64,
+      "right": 48,
+      "bottom": 64,
+      "left": 48
+    }
+  },
+  "assets": [
+    {
+      "hash": "72480c0b68060af1",
+      "mime": "image/png",
+      "width": 96,
+      "height": 32
+    }
+  ],
+  "header": [
+    {
+      "id": "hdr-logo",
+      "type": "image",
+      "assetHash": "72480c0b68060af1",
+      "width": 72,
+      "height": 24,
+      "align": "left"
+    }
+  ],
+  "footer": [
+    {
+      "id": "ftr-page",
+      "type": "pageNumber",
+      "format": "Page {page} of {total}",
+      "align": "center"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "title",
+      "type": "heading",
+      "level": 1,
+      "text": "Invoice {{ invoice.number }}"
+    },
+    {
+      "id": "from",
+      "type": "text",
+      "rich": {
+        "spans": [
+          {
+            "text": "{{ seller.name }}",
+            "bold": true
+          },
+          {
+            "text": " \u00b7 {{ seller.address }} \u00b7 {{ seller.email }}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "meta",
+      "type": "keyValue",
+      "items": [
+        {
+          "key": "Bill to",
+          "value": "{{ customer.name }}"
+        },
+        {
+          "key": "Issued",
+          "value": "{{ invoice.issuedOn | date:long }}"
+        },
+        {
+          "key": "Due",
+          "value": "{{ invoice.dueOn | date:long }}"
+        },
+        {
+          "key": "Purchase order",
+          "value": "{{ invoice.po | default:'none' }}"
+        }
+      ]
+    },
+    {
+      "id": "lines",
+      "type": "dataTable",
+      "rowBinding": "invoice.lines",
+      "variant": "line",
+      "columns": [
+        {
+          "key": "n",
+          "header": "#",
+          "cell": "{{ $number }}",
+          "width": 0.06
+        },
+        {
+          "key": "description",
+          "header": "Description",
+          "cell": "{{ description }}"
+        },
+        {
+          "key": "quantity",
+          "header": "Qty",
+          "cell": "{{ quantity | number:0 }}",
+          "align": "right",
+          "width": 0.1
+        },
+        {
+          "key": "unit",
+          "header": "Unit price",
+          "cell": "{{ unitPrice | currency:GHS }}",
+          "align": "right",
+          "width": 0.2
+        },
+        {
+          "key": "amount",
+          "header": "Amount",
+          "cell": "{{ amount | currency:GHS }}",
+          "align": "right",
+          "width": 0.2
+        }
+      ],
+      "emptyText": "This invoice has no lines."
+    },
+    {
+      "id": "totals",
+      "type": "keepTogether",
+      "blocks": [
+        {
+          "id": "totals-kv",
+          "type": "keyValue",
+          "items": [
+            {
+              "key": "Subtotal",
+              "value": "{{ invoice.subtotal | currency:GHS }}"
+            },
+            {
+              "key": "VAT ({{ invoice.vatRate | number:1 }}%)",
+              "value": "{{ invoice.vat | currency:GHS }}"
+            },
+            {
+              "key": "Total due",
+              "value": "{{ invoice.total | currency:GHS }}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "type": "if",
+      "test": {
+        "var": "invoice.notes"
+      },
+      "then": [
+        {
+          "id": "notes-sec",
+          "type": "section",
+          "title": "Notes",
+          "blocks": [
+            {
+              "id": "notes-text",
+              "type": "text",
+              "rich": {
+                "spans": [
+                  {
+                    "text": "{{ invoice.notes }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pay",
+      "type": "section",
+      "title": "Payment",
+      "blocks": [
+        {
+          "id": "pay-list",
+          "type": "list",
+          "variant": "bullet",
+          "items": [
+            {
+              "spans": [
+                {
+                  "text": "Bank: "
+                },
+                {
+                  "text": "{{ seller.bank.name }}",
+                  "bold": true
+                }
+              ]
+            },
+            {
+              "spans": [
+                {
+                  "text": "Account: {{ seller.bank.account }}"
+                }
+              ]
+            },
+            {
+              "spans": [
+                {
+                  "text": "Reference: {{ invoice.number }}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "pay-qr",
+          "type": "qrcode",
+          "value": "{{ invoice.payUrl }}",
+          "size": 72,
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "id": "sig",
+      "type": "signature",
+      "mode": "slot",
+      "slotId": "seller",
+      "variant": "single",
+      "signer": {
+        "name": "{{ seller.signatory }}",
+        "title": "For {{ seller.name }}",
+        "date": "{{ invoice.issuedOn | date:medium }}"
+      }
+    }
+  ]
+}

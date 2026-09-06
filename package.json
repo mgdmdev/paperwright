@@ -2,7 +2,7 @@
   "name": "docform-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "docform — one document model, a builder, and renderers to PDF and DOCX. Built on pdfcn.",
+  "description": "docform \u2014 one document model, a builder, and renderers to PDF and DOCX. Built on pdfcn.",
   "license": "MIT",
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -10,9 +10,11 @@
     "pnpm": ">=11"
   },
   "scripts": {
-    "build": "pnpm -r --filter './packages/*' build",
-    "typecheck": "pnpm -r --filter './packages/*' typecheck",
-    "test": "vitest run",
+    "build": "pnpm -r --filter \"./packages/*\" build",
+    "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
+    "test": "pnpm build && vitest run",
+    "test:only": "vitest run",
+    "examples": "pnpm --filter @docform/example-basic render",
     "changeset": "changeset"
   },
   "devDependencies": {
@@ -20,9 +22,11 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tsup": "^8.5.1",
+    "tsx": "^4.23.13",
     "typescript": "5.9.3",
     "vitest": "^5.0.0"
   }

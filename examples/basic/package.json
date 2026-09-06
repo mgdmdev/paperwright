@@ -1,0 +1,14 @@
+{
+  "name": "@docform/example-basic",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "render": "tsx render.ts"
+  },
+  "dependencies": {
+    "@docform/model": "workspace:*",
+    "@docform/react": "workspace:*",
+    "@docform/render-pdf": "workspace:*"
+  }
+}

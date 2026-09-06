@@ -1,12 +1,12 @@
-import { blueprintTheme } from "./themes/blueprint";
-import { corporateTheme } from "./themes/corporate";
-import { elegantTheme } from "./themes/elegant";
-import { executiveTheme } from "./themes/executive";
-import { forestTheme } from "./themes/forest";
-import { minimalTheme } from "./themes/minimal";
-import { modernTheme } from "./themes/modern";
-import { professionalTheme } from "./themes/professional";
-import { vividTheme } from "./themes/vivid";
+import { blueprintTheme } from "./blueprint";
+import { corporateTheme } from "./corporate";
+import { elegantTheme } from "./elegant";
+import { executiveTheme } from "./executive";
+import { forestTheme } from "./forest";
+import { minimalTheme } from "./minimal";
+import { modernTheme } from "./modern";
+import { professionalTheme } from "./professional";
+import { vividTheme } from "./vivid";
 
 export type { PDFComponentProps, Style } from "../types/pdf-components";
 export type {
@@ -24,16 +24,16 @@ export type {
   LetterSpacingScale,
 } from "../types/pdf-themes";
 
-export { defaultPrimitives } from "./themes/primitives";
-export { professionalTheme } from "./themes/professional";
-export { modernTheme } from "./themes/modern";
-export { minimalTheme } from "./themes/minimal";
-export { executiveTheme } from "./themes/executive";
-export { corporateTheme } from "./themes/corporate";
-export { elegantTheme } from "./themes/elegant";
-export { vividTheme } from "./themes/vivid";
-export { forestTheme } from "./themes/forest";
-export { blueprintTheme } from "./themes/blueprint";
+export { defaultPrimitives } from "./primitives";
+export { professionalTheme } from "./professional";
+export { modernTheme } from "./modern";
+export { minimalTheme } from "./minimal";
+export { executiveTheme } from "./executive";
+export { corporateTheme } from "./corporate";
+export { elegantTheme } from "./elegant";
+export { vividTheme } from "./vivid";
+export { forestTheme } from "./forest";
+export { blueprintTheme } from "./blueprint";
 
 /** Map of all built-in theme presets */
 export const themePresets = {

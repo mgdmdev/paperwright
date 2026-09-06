@@ -1,14 +1,15 @@
 import type { ReactElement } from 'react';
-import type { ResolvedDocument, RenderInput } from '@docform/model';
 
 /**
- * The engine adapter. A renderer takes a resolved document, builds a React tree out of the
- * component layer in @docform/react, and hands that tree to an engine, which lays it out and
- * writes PDF bytes. Engines differ in what they can do (fixed header/footer, repeating table
- * headers, PDF/A, bidi), so the adapter is the one place those differences are allowed to show.
+ * The engine adapter. The compiler builds React trees out of the component layer in
+ * @docform/react for the base an engine renders, and the engine lays them out into PDF bytes.
+ * Engines differ in what they can do, so the adapter is the one place those differences show.
  */
 
 export type EngineName = 'forme' | 'takumi';
+
+/** Which component base of @docform/react an engine consumes. */
+export type Base = 'forme' | 'takumi';
 
 export interface EngineCapabilities {
   fixedHeaderFooter: boolean;
@@ -20,48 +21,55 @@ export interface EngineCapabilities {
   browser: boolean;
 }
 
-export interface FontSource {
+export interface FontFace {
   family: string;
-  weight?: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
-  style?: 'normal' | 'italic';
+  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style: 'normal' | 'italic';
   data: Uint8Array;
 }
 
-export interface RenderOptions {
-  /** Points; taken from the model's page setup. */
+export interface EngineImage {
+  /** The src the compiled tree refers to; see CompileContext.assetSrc. */
+  src: string;
+  mime: 'image/png' | 'image/jpeg' | 'image/svg+xml';
+  data: Uint8Array;
+}
+
+/** Points. Orientation is already applied: width and height are the sheet as printed. */
+export interface PageGeometry {
   width: number;
   height: number;
-  fonts?: FontSource[];
-  metadata?: { title?: string; author?: string; subject?: string; creator?: string };
+  margins: { top: number; right: number; bottom: number; left: number };
+}
+
+export interface DocumentMetadata {
+  title?: string;
+  author?: string;
+  subject?: string;
+  creator?: string;
+  /** BCP 47. */
+  lang: string;
+}
+
+/** What the compiler hands an engine: trees for the body and the repeating bands, plus resources. */
+export interface EngineDocument {
+  body: ReactElement;
+  header?: ReactElement;
+  footer?: ReactElement;
+  page: PageGeometry;
+  fonts: FontFace[];
+  /** Ordered family names for the fallback chain; the first is the document default. */
+  fontFamilies: string[];
+  images: EngineImage[];
+  metadata: DocumentMetadata;
   pdfA?: boolean;
 }
 
 export interface DocumentEngine {
   readonly name: EngineName;
+  readonly base: Base;
   readonly capabilities: EngineCapabilities;
-  /** Lays out `tree` and returns the PDF bytes. `tree` is the page content; the engine supplies pages. */
-  render(tree: ReactElement, options: RenderOptions): Promise<Uint8Array>;
+  /** How the compiled tree must refer to an image so this engine finds it. */
+  imageSrc(image: EngineImage): string;
+  render(doc: EngineDocument): Promise<Uint8Array>;
 }
-
-export interface RenderPdfOptions {
-  engine: DocumentEngine;
-  fonts?: FontSource[];
-  metadata?: RenderOptions['metadata'];
-  pdfA?: boolean;
-}
-
-export interface RenderPdfResult {
-  bytes: Uint8Array;
-  engine: EngineName;
-  /** Warnings the renderer chose not to fail on: an unsupported capability, a missing asset. */
-  warnings: string[];
-}
-
-/**
- * Turns a resolved document into the React tree the engine will lay out. Exposed so the
- * live-preview page and the DOCX renderer can share it.
- */
-export type CompileModel = (doc: ResolvedDocument) => ReactElement;
-
-/** Resolves bindings, compiles, and renders. The one call a host makes. */
-export type RenderPdf = (input: RenderInput, options: RenderPdfOptions) => Promise<RenderPdfResult>;

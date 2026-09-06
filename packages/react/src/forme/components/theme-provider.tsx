@@ -1,12 +1,10 @@
 import type { Style } from "@formepdf/react";
-import { isValidElement } from "react";
+import { createContext, isValidElement, useContext } from "react";
 import type { DependencyList, ReactNode } from "react";
 
 import { professionalTheme } from "../../themes/professional";
 
 export type PdfcnTheme = typeof professionalTheme;
-
-let serializedTheme = professionalTheme;
 
 export interface PdfcnThemeProviderProps {
   theme?: PdfcnTheme;
@@ -33,29 +31,59 @@ export const mergePdfStyles = (...inputs: PdfStyleInput[]): Style => {
   return merged;
 };
 
-const renderForSerializer = (
-  children: ReactNode,
-  theme: PdfcnTheme
-): ReactNode => {
-  serializedTheme = theme;
+export const PdfcnThemeContext = createContext<PdfcnTheme>(professionalTheme);
 
+let fallbackTheme: PdfcnTheme = professionalTheme;
+
+/**
+ * Forme's own `serialize()` calls components bare, with no hook dispatcher, so a Provider element
+ * would reach it unexpanded. Under a dispatcher (React itself, or `resolveTree` from this
+ * package) a real Provider is used and nested providers scope correctly; without one the
+ * provider falls back to the module-level value and expands its child in place, which is safe
+ * because that walk is synchronous.
+ */
+const hasDispatcher = (): boolean => {
+  try {
+    useContext(PdfcnThemeContext);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const expandBare = (children: ReactNode): ReactNode => {
   if (!isValidElement(children) || typeof children.type !== "function") {
     return children;
   }
   if ((children.type as { __formeType?: string }).__formeType === "Document") {
     return children;
   }
-
   return (children.type as (props: unknown) => ReactNode)(children.props);
 };
 
 export const PdfcnThemeProvider = ({
   theme,
   children,
-}: PdfcnThemeProviderProps) =>
-  renderForSerializer(children, theme ?? professionalTheme);
+}: PdfcnThemeProviderProps) => {
+  const resolved = theme ?? professionalTheme;
+  fallbackTheme = resolved;
+  if (!hasDispatcher()) {
+    return expandBare(children);
+  }
+  return (
+    <PdfcnThemeContext.Provider value={resolved}>
+      {children}
+    </PdfcnThemeContext.Provider>
+  );
+};
 
-export const usePdfcnTheme = (): PdfcnTheme => serializedTheme;
+export const usePdfcnTheme = (): PdfcnTheme => {
+  try {
+    return useContext(PdfcnThemeContext);
+  } catch {
+    return fallbackTheme;
+  }
+};
 
 export const useSafeMemo = <T,>(factory: () => T, _deps: DependencyList): T =>
   factory();

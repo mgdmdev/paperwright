@@ -1,0 +1,28 @@
+{
+  "seller": {
+    "name": "Northwind Studio",
+    "address": "12 Harbour Lane, Tema",
+    "email": "billing@northwind.example",
+    "signatory": "A. Owusu",
+    "bank": { "name": "First Atlantic Bank", "account": "0012 3456 7890" }
+  },
+  "customer": { "name": "Blue Meridian Ltd" },
+  "invoice": {
+    "number": "INV-2026-0142",
+    "issuedOn": "2026-09-01",
+    "dueOn": "2026-10-01",
+    "po": "",
+    "payUrl": "https://pay.example/inv/2026-0142",
+    "notes": "Thank you for your business. Late payments accrue 2% per month.",
+    "subtotal": 18240,
+    "vatRate": 15,
+    "vat": 2736,
+    "total": 20976,
+    "lines": [
+      { "description": "Brand identity system", "quantity": 1, "unitPrice": 9500, "amount": 9500 },
+      { "description": "Website design, 6 templates", "quantity": 6, "unitPrice": 1100, "amount": 6600 },
+      { "description": "Photography day rate", "quantity": 2, "unitPrice": 820, "amount": 1640 },
+      { "description": "Print production supervision", "quantity": 1, "unitPrice": 500, "amount": 500 }
+    ]
+  }
+}

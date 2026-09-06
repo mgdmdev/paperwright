@@ -1,0 +1,14 @@
+{
+  "sender": { "name": "Northwind Studio", "address": "12 Harbour Lane, Tema", "signatory": "A. Owusu", "role": "Managing Director" },
+  "recipient": { "name": "Ms Efua Danso", "address": "Blue Meridian Ltd, 4 Ridge Road, Accra", "salutation": "Ms Danso" },
+  "letter": {
+    "date": "2026-09-04",
+    "subject": "Renewal of the design retainer for 2027",
+    "paragraphs": [
+      "Thank you for another year of working together. Over the past twelve months we delivered the brand identity system, six website templates and the print collateral for the Ridge Road launch.",
+      "We propose renewing the retainer on the same terms for 2027, with one change: the monthly review moves to the first Tuesday so it no longer collides with your board cycle.",
+      "The attached schedule sets out the scope and the fee. Please sign and return one copy by 30 September so we can hold the team's availability."
+    ],
+    "cc": ["K. Mensah, Finance", "Legal"]
+  }
+}

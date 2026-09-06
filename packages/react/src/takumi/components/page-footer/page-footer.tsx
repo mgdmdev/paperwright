@@ -479,5 +479,6 @@ export const PageFooter = ({
       ),
   };
 
-  return variantRenderers[variant]() as React.ReactNode;
+  const node = variantRenderers[variant]() as React.ReactNode;
+  return _isFixed ? <View fixed>{node}</View> : node;
 };

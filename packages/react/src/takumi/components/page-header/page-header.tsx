@@ -441,6 +441,7 @@ export const PageHeader = ({
   address,
   phone,
   email,
+  fixed = false,
   noWrap = true,
   style,
 }: PageHeaderProps) => {
@@ -579,5 +580,7 @@ export const PageHeader = ({
       ),
   };
 
-  return variantRenderers[variant]() as React.ReactNode;
+  const node = variantRenderers[variant]() as React.ReactNode;
+  // Takumi repeats a position: fixed box on every page; the View primitive maps `fixed` to it.
+  return fixed ? <View fixed>{node}</View> : node;
 };
