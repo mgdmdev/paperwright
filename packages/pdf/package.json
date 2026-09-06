@@ -45,11 +45,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mgdmdev/paperwright.git",
+    "url": "git+https://github.com/wmsafrica/paperwright.git",
     "directory": "packages/pdf"
   },
-  "homepage": "https://github.com/mgdmdev/paperwright/tree/main/packages/pdf#readme",
-  "bugs": "https://github.com/mgdmdev/paperwright/issues",
+  "homepage": "https://github.com/wmsafrica/paperwright/tree/main/packages/pdf#readme",
+  "bugs": "https://github.com/wmsafrica/paperwright/issues",
   "keywords": [
     "pdf",
     "document",

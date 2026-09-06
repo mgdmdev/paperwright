@@ -25,8 +25,8 @@
     "zod": "4.5.4"
   },
   "publishConfig": { "access": "public" },
-  "repository": { "type": "git", "url": "git+https://github.com/mgdmdev/paperwright.git", "directory": "packages/ai" },
-  "homepage": "https://github.com/mgdmdev/paperwright/tree/main/packages/ai#readme",
-  "bugs": "https://github.com/mgdmdev/paperwright/issues",
+  "repository": { "type": "git", "url": "git+https://github.com/wmsafrica/paperwright.git", "directory": "packages/ai" },
+  "homepage": "https://github.com/wmsafrica/paperwright/tree/main/packages/ai#readme",
+  "bugs": "https://github.com/wmsafrica/paperwright/issues",
   "keywords": ["pdf", "document", "template", "llm", "ai"]
 }
