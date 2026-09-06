@@ -1,7 +1,7 @@
 {
   "name": "@paperwright/model",
-  "version": "0.0.0",
-  "description": "The paperwright document model: types, schema, binding evaluator, migrations",
+  "version": "0.1.0",
+  "description": "The paperwright document model: types, schema, binding evaluator",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -42,7 +42,6 @@
     "template",
     "react",
     "forme",
-    "takumi",
     "pdfcn"
   ]
 }

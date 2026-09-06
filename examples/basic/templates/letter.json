@@ -3,28 +3,157 @@
   "id": "letter",
   "name": "Letter",
   "locale": "en-GB",
-  "theme": "elegant",
-  "page": { "size": "A4", "orientation": "portrait", "margins": { "top": 72, "right": 64, "bottom": 72, "left": 64 } },
-  "assets": [{ "hash": "72480c0b68060af1", "mime": "image/png", "width": 96, "height": 32 }],
+  "theme": "professional",
+  "page": {
+    "size": "A4",
+    "orientation": "portrait",
+    "margins": {
+      "top": 72,
+      "right": 64,
+      "bottom": 72,
+      "left": 64
+    }
+  },
+  "assets": [
+    {
+      "hash": "72480c0b68060af1",
+      "mime": "image/png",
+      "width": 96,
+      "height": 32
+    }
+  ],
   "footer": [
-    { "id": "ftr", "type": "text", "rich": { "align": "center", "spans": [ { "text": "{{ sender.name }} · {{ sender.address }}" } ] } }
+    {
+      "id": "ftr",
+      "type": "text",
+      "rich": {
+        "align": "center",
+        "spans": [
+          {
+            "text": "{{ sender.name }} \u00b7 {{ sender.address }}"
+          }
+        ]
+      }
+    }
   ],
   "blocks": [
-    { "id": "logo", "type": "image", "assetHash": "72480c0b68060af1", "width": 96, "height": 32, "align": "right" },
-    { "id": "date", "type": "text", "rich": { "align": "right", "spans": [ { "text": "{{ letter.date | date:long }}" } ] } },
-    { "id": "to", "type": "text", "rich": { "spans": [
-      { "text": "{{ recipient.name }}", "bold": true }, { "text": "\n{{ recipient.address }}" }
-    ] } },
-    { "id": "subject", "type": "heading", "level": 3, "text": "{{ letter.subject }}" },
-    { "id": "salutation", "type": "text", "rich": { "spans": [ { "text": "Dear {{ recipient.salutation | default:'Sir or Madam' }}," } ] } },
-    { "id": "paras", "type": "repeat", "forEach": "letter.paragraphs", "as": "p", "blocks": [
-      { "id": "para", "type": "text", "rich": { "align": "justify", "spans": [ { "text": "{{ p }}" } ] } }
-    ] },
-    { "id": "closing", "type": "text", "rich": { "spans": [ { "text": "Yours sincerely," } ] } },
-    { "id": "sig", "type": "signature", "mode": "captured", "assetHash": "72480c0b68060af1", "variant": "single",
-      "signer": { "name": "{{ sender.signatory }}", "title": "{{ sender.role }}" } },
-    { "id": "cc", "type": "if", "test": { "var": "letter.cc" }, "then": [
-      { "id": "cc-text", "type": "text", "rich": { "spans": [ { "text": "cc: ", "italic": true }, { "text": "{{ letter.cc | join:'; ' }}", "italic": true } ] } }
-    ] }
+    {
+      "id": "logo",
+      "type": "image",
+      "assetHash": "72480c0b68060af1",
+      "width": 96,
+      "height": 32,
+      "align": "right"
+    },
+    {
+      "id": "date",
+      "type": "text",
+      "rich": {
+        "align": "right",
+        "spans": [
+          {
+            "text": "{{ letter.date | date:long }}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "to",
+      "type": "text",
+      "rich": {
+        "spans": [
+          {
+            "text": "{{ recipient.name }}",
+            "bold": true
+          },
+          {
+            "text": "\n{{ recipient.address }}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "subject",
+      "type": "heading",
+      "level": 3,
+      "text": "{{ letter.subject }}"
+    },
+    {
+      "id": "salutation",
+      "type": "text",
+      "rich": {
+        "spans": [
+          {
+            "text": "Dear {{ recipient.salutation | default:'Sir or Madam' }},"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paras",
+      "type": "repeat",
+      "forEach": "letter.paragraphs",
+      "as": "p",
+      "blocks": [
+        {
+          "id": "para",
+          "type": "text",
+          "rich": {
+            "align": "justify",
+            "spans": [
+              {
+                "text": "{{ p }}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "type": "text",
+      "rich": {
+        "spans": [
+          {
+            "text": "Yours sincerely,"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sig",
+      "type": "signature",
+      "assetHash": "72480c0b68060af1",
+      "variant": "single",
+      "signer": {
+        "name": "{{ sender.signatory }}",
+        "title": "{{ sender.role }}"
+      }
+    },
+    {
+      "id": "cc",
+      "type": "if",
+      "test": {
+        "var": "letter.cc"
+      },
+      "then": [
+        {
+          "id": "cc-text",
+          "type": "text",
+          "rich": {
+            "spans": [
+              {
+                "text": "cc: ",
+                "italic": true
+              },
+              {
+                "text": "{{ letter.cc | join:'; ' }}",
+                "italic": true
+              }
+            ]
+          }
+        }
+      ]
+    }
   ]
 }

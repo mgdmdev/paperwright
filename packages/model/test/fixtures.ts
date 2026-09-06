@@ -47,7 +47,7 @@ export const invoiceModel: DocumentModel = {
         { id: 'payee', type: 'text', rich: { spans: [{ text: '{{ $number }}. {{ p.name }} ({{ p.share | number:1 }}%)' }] } },
       ],
     },
-    { id: 'sig', type: 'signature', mode: 'slot', slotId: 'customer', signer: { name: '{{ customer.name }}', title: 'Customer' } },
+    { id: 'sig', type: 'signature', signer: { name: '{{ customer.name }}', title: 'Customer' } },
   ],
   assets: [],
 };

@@ -70,9 +70,8 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({ ...base, type: z.literal('section'), title: bindingOrString.optional(), blocks: z.array(blockSchema) }),
     z.object({ ...base, type: z.literal('repeat'), forEach: z.string().min(1), as: z.string().min(1), blocks: z.array(blockSchema) }),
     z.object({ ...base, type: z.literal('if'), test: bindingSchema, then: z.array(blockSchema), else: z.array(blockSchema).optional() }),
-    z.object({ ...base, type: z.literal('pageBreak') }),
     z.object({ ...base, type: z.literal('keepTogether'), blocks: z.array(blockSchema) }),
-    z.object({ ...base, type: z.literal('signature'), mode: z.enum(['captured', 'slot']), assetHash: z.string().optional(), slotId: z.string().optional(), signer: z.object({ name: bindingOrString.optional(), title: bindingOrString.optional(), date: bindingOrString.optional() }), variant: z.enum(['single', 'inline']).optional() }),
+    z.object({ ...base, type: z.literal('signature'), assetHash: z.string().optional(), signer: z.object({ name: bindingOrString.optional(), title: bindingOrString.optional(), date: bindingOrString.optional() }), variant: z.enum(['single', 'inline']).optional() }),
     z.object({ ...base, type: z.literal('watermark'), text: bindingOrString, opacity: z.number().min(0).max(1).optional() }),
     z.object({ ...base, type: z.literal('pageNumber'), format: z.string().optional(), align: align.optional() }),
   ]),
@@ -102,7 +101,6 @@ export const documentModelSchema: z.ZodType<DocumentModel> = z.object({
   footer: z.array(blockSchema).optional(),
   blocks: z.array(blockSchema),
   assets: z.array(assetSchema),
-  variablesSchema: z.record(z.string(), z.unknown()).optional(),
 }) as z.ZodType<DocumentModel>;
 
 export interface ValidationIssue {
@@ -113,8 +111,8 @@ export interface ValidationIssue {
 export type ValidationResult = { ok: true; model: DocumentModel } | { ok: false; issues: ValidationIssue[] };
 
 /**
- * Shape validation through the schema, then the rules the schema cannot say: unique block ids,
- * image and captured-signature assets that exist, slot signatures that carry a slot id.
+ * Shape validation through the schema, then the rules the schema cannot say: unique block ids and
+ * image and signature assets that exist.
  */
 export function validateModel(input: unknown): ValidationResult {
   const parsed = documentModelSchema.safeParse(input);
@@ -133,13 +131,8 @@ export function validateModel(input: unknown): ValidationResult {
       if (block.type === 'image' && !assets.has(block.assetHash)) {
         issues.push({ path: `${here}.assetHash`, message: `No asset "${block.assetHash}"` });
       }
-      if (block.type === 'signature') {
-        if (block.mode === 'captured' && (!block.assetHash || !assets.has(block.assetHash))) {
-          issues.push({ path: `${here}.assetHash`, message: 'A captured signature needs an asset' });
-        }
-        if (block.mode === 'slot' && !block.slotId) {
-          issues.push({ path: `${here}.slotId`, message: 'A signature slot needs a slotId' });
-        }
+      if (block.type === 'signature' && block.assetHash !== undefined && !assets.has(block.assetHash)) {
+        issues.push({ path: `${here}.assetHash`, message: `No asset "${block.assetHash}"` });
       }
       if (block.type === 'section' || block.type === 'keepTogether' || block.type === 'repeat') walk(block.blocks, `${here}.blocks`);
       if (block.type === 'if') {

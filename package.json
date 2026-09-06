@@ -2,7 +2,7 @@
   "name": "paperwright-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "paperwright \u2014 one document model, a builder, and renderers to PDF and DOCX. Built on pdfcn.",
+  "description": "paperwright: JSON document templates rendered to PDF. Built on pdfcn and Forme.",
   "license": "MIT",
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -14,11 +14,9 @@
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
     "test": "pnpm build && vitest run",
     "test:only": "vitest run",
-    "examples": "pnpm --filter @paperwright/example-basic render",
-    "changeset": "changeset"
+    "examples": "pnpm --filter @paperwright/example-basic render"
   },
   "devDependencies": {
-    "@changesets/cli": "^3.0.2",
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

@@ -225,8 +225,6 @@
     {
       "id": "sig",
       "type": "signature",
-      "mode": "slot",
-      "slotId": "seller",
       "variant": "single",
       "signer": {
         "name": "{{ seller.signatory }}",

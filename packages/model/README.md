@@ -28,9 +28,9 @@ rendering engine, so it runs anywhere: a server, a browser, a worker.
 ```
 
 Units are PDF points. Block types: `heading`, `text` (rich spans), `divider`, `image`, `qrcode`,
-`keyValue`, `list`, `table`, `dataTable`, `section`, `repeat`, `if`, `pageBreak`, `keepTogether`,
-`signature` (captured image or signing slot), `watermark`, `pageNumber`. Assets travel by content
-hash; the bytes are supplied at render time.
+`keyValue`, `list`, `table`, `dataTable`, `section`, `repeat`, `if`, `keepTogether`, `signature`
+(a signing line, with a stored signature image above it when `assetHash` is set), `watermark`,
+`pageNumber`. Assets travel by content hash; the bytes are supplied at render time.
 
 ## Bindings
 
@@ -55,7 +55,7 @@ variable is whatever `as` names; inside a `dataTable`, each row's fields are in 
 ```ts
 import { migrateModel, validateModel, resolveDocument, listBindings } from '@paperwright/model';
 
-const model = migrateModel(json);            // any supported version → current, validated; throws ModelError
+const model = migrateModel(json);            // checks the version and validates; throws ModelError
 const result = validateModel(json);          // { ok: true, model } | { ok: false, issues }
 const resolved = resolveDocument({ model, data, locale: 'fr-FR' }); // bindings → strings, repeat/if expanded
 listBindings(model);                         // every path the template reads, for a variable picker

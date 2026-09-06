@@ -156,24 +156,15 @@ export interface IfBlock extends BlockBase {
   else?: Block[];
 }
 
-export interface PageBreakBlock extends BlockBase {
-  type: 'pageBreak';
-}
-
 export interface KeepTogetherBlock extends BlockBase {
   type: 'keepTogether';
   blocks: Block[];
 }
 
-/**
- * A signature. `captured` renders a stored image; `slot` renders a signing line and, when the
- * host exports a field manifest, tells an e-sign service where to place the field.
- */
+/** A signing line with the signer's details; with an asset, the stored signature is drawn above it. */
 export interface SignatureBlock extends BlockBase {
   type: 'signature';
-  mode: 'captured' | 'slot';
   assetHash?: string;
-  slotId?: string;
   signer: { name?: BindingOrString; title?: BindingOrString; date?: BindingOrString };
   variant?: 'single' | 'inline';
 }
@@ -204,16 +195,12 @@ export type Block =
   | SectionBlock
   | RepeatBlock
   | IfBlock
-  | PageBreakBlock
   | KeepTogetherBlock
   | SignatureBlock
   | WatermarkBlock
   | PageNumberBlock;
 
 export type BlockType = Block['type'];
-
-/** A JSON Schema (draft 2020-12 subset) describing the data a template expects; the builder's variable picker reads it. */
-export type JsonSchema = Record<string, unknown>;
 
 export interface DocumentModel {
   version: SchemaVersion;
@@ -222,14 +209,13 @@ export interface DocumentModel {
   /** BCP 47; the default for date, number and currency filters. */
   locale: string;
   page: PageSetup;
-  /** Theme name from @paperwright/react, or undefined for the default. */
+  /** Theme name from @paperwright/pdf, or undefined for the default. */
   theme?: string;
   /** Rendered on every page. */
   header?: Block[];
   footer?: Block[];
   blocks: Block[];
   assets: Asset[];
-  variablesSchema?: JsonSchema;
 }
 
 /** What the host supplies at render time. */

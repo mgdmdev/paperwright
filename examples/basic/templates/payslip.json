@@ -4,52 +4,180 @@
   "name": "Payslip",
   "locale": "en-GB",
   "theme": "minimal",
-  "page": { "size": "A4", "orientation": "portrait", "margins": { "top": 56, "right": 48, "bottom": 56, "left": 48 } },
+  "page": {
+    "size": "A4",
+    "orientation": "portrait",
+    "margins": {
+      "top": 56,
+      "right": 48,
+      "bottom": 56,
+      "left": 48
+    }
+  },
   "assets": [],
   "footer": [
-    { "id": "ftr", "type": "text", "rich": { "align": "center", "spans": [ { "text": "Confidential · generated {{ generatedOn | date:medium }}" } ] } }
+    {
+      "id": "ftr",
+      "type": "text",
+      "rich": {
+        "align": "center",
+        "spans": [
+          {
+            "text": "Confidential \u00b7 generated {{ generatedOn | date:medium }}"
+          }
+        ]
+      }
+    }
   ],
   "blocks": [
-    { "id": "wm", "type": "watermark", "text": "{{ status | upper }}", "opacity": 0.08 },
-    { "id": "title", "type": "heading", "level": 2, "text": "Payslip · {{ period.label }}" },
-    { "id": "who", "type": "keyValue", "items": [
-      { "key": "Employee", "value": "{{ employee.name }}" },
-      { "key": "Staff number", "value": "{{ employee.number }}" },
-      { "key": "Department", "value": "{{ employee.department }}" },
-      { "key": "Paid on", "value": "{{ period.paidOn | date:long }}" }
-    ] },
-    { "id": "earnings", "type": "section", "title": "Earnings", "blocks": [
-      { "id": "earn-table", "type": "dataTable", "rowBinding": "earnings", "variant": "minimal",
-        "columns": [
-          { "key": "label", "header": "Item", "cell": "{{ label }}" },
-          { "key": "amount", "header": "Amount", "cell": "{{ amount | currency:GHS }}", "align": "right", "width": 0.25 }
-        ] }
-    ] },
-    { "id": "deductions", "type": "section", "title": "Deductions", "blocks": [
-      { "id": "ded-table", "type": "dataTable", "rowBinding": "deductions", "variant": "minimal",
-        "columns": [
-          { "key": "label", "header": "Item", "cell": "{{ label }}" },
-          { "key": "amount", "header": "Amount", "cell": "{{ amount | currency:GHS }}", "align": "right", "width": 0.25 }
-        ],
-        "emptyText": "No deductions this period." }
-    ] },
-    { "id": "net", "type": "keepTogether", "blocks": [
-      { "id": "net-rule", "type": "divider", "variant": "solid" },
-      { "id": "net-kv", "type": "keyValue", "items": [
-        { "key": "Gross pay", "value": "{{ totals.gross | currency:GHS }}" },
-        { "key": "Total deductions", "value": "{{ totals.deductions | currency:GHS }}" },
-        { "key": "Net pay", "value": "{{ totals.net | currency:GHS }}" }
-      ] }
-    ] },
-    { "id": "ytd", "type": "table", "variant": "compact",
+    {
+      "id": "wm",
+      "type": "watermark",
+      "text": "{{ status | upper }}",
+      "opacity": 0.08
+    },
+    {
+      "id": "title",
+      "type": "heading",
+      "level": 2,
+      "text": "Payslip \u00b7 {{ period.label }}"
+    },
+    {
+      "id": "who",
+      "type": "keyValue",
+      "items": [
+        {
+          "key": "Employee",
+          "value": "{{ employee.name }}"
+        },
+        {
+          "key": "Staff number",
+          "value": "{{ employee.number }}"
+        },
+        {
+          "key": "Department",
+          "value": "{{ employee.department }}"
+        },
+        {
+          "key": "Paid on",
+          "value": "{{ period.paidOn | date:long }}"
+        }
+      ]
+    },
+    {
+      "id": "earnings",
+      "type": "section",
+      "title": "Earnings",
+      "blocks": [
+        {
+          "id": "earn-table",
+          "type": "dataTable",
+          "rowBinding": "earnings",
+          "variant": "minimal",
+          "columns": [
+            {
+              "key": "label",
+              "header": "Item",
+              "cell": "{{ label }}"
+            },
+            {
+              "key": "amount",
+              "header": "Amount",
+              "cell": "{{ amount | currency:GHS }}",
+              "align": "right",
+              "width": 0.25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deductions",
+      "type": "section",
+      "title": "Deductions",
+      "blocks": [
+        {
+          "id": "ded-table",
+          "type": "dataTable",
+          "rowBinding": "deductions",
+          "variant": "minimal",
+          "columns": [
+            {
+              "key": "label",
+              "header": "Item",
+              "cell": "{{ label }}"
+            },
+            {
+              "key": "amount",
+              "header": "Amount",
+              "cell": "{{ amount | currency:GHS }}",
+              "align": "right",
+              "width": 0.25
+            }
+          ],
+          "emptyText": "No deductions this period."
+        }
+      ]
+    },
+    {
+      "id": "net",
+      "type": "keepTogether",
+      "blocks": [
+        {
+          "id": "net-rule",
+          "type": "divider",
+          "variant": "solid"
+        },
+        {
+          "id": "net-kv",
+          "type": "keyValue",
+          "items": [
+            {
+              "key": "Gross pay",
+              "value": "{{ totals.gross | currency:GHS }}"
+            },
+            {
+              "key": "Total deductions",
+              "value": "{{ totals.deductions | currency:GHS }}"
+            },
+            {
+              "key": "Net pay",
+              "value": "{{ totals.net | currency:GHS }}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ytd",
+      "type": "table",
+      "variant": "compact",
       "columns": [
-        { "key": "k", "header": "Year to date" },
-        { "key": "v", "header": "", "align": "right", "width": 0.3 }
+        {
+          "key": "k",
+          "header": "Year to date"
+        },
+        {
+          "key": "v",
+          "header": "",
+          "align": "right",
+          "width": 0.3
+        }
       ],
       "rows": [
-        [ "Gross", "{{ ytd.gross | currency:GHS }}" ],
-        [ "Tax", "{{ ytd.tax | currency:GHS }}" ],
-        [ "Pension", "{{ ytd.pension | currency:GHS }}" ]
-      ] }
+        [
+          "Gross",
+          "{{ ytd.gross | currency:GHS }}"
+        ],
+        [
+          "Tax",
+          "{{ ytd.tax | currency:GHS }}"
+        ],
+        [
+          "Pension",
+          "{{ ytd.pension | currency:GHS }}"
+        ]
+      ]
+    }
   ]
 }

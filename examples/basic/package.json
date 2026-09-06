@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@paperwright/model": "workspace:*",
-    "@paperwright/react": "workspace:*",
-    "@paperwright/render-pdf": "workspace:*"
+    "@paperwright/pdf": "workspace:*"
   }
 }

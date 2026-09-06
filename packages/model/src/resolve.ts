@@ -151,7 +151,6 @@ function resolveBlock(block: Block, ctx: Ctx): ResolvedBlock[] {
     case 'text':
       return [{ ...block, rich: resolveRich(ctx, block.rich) }];
     case 'divider':
-    case 'pageBreak':
     case 'pageNumber':
       return [block];
     case 'image': {
@@ -293,7 +292,6 @@ export function listBindings(model: DocumentModel): string[] {
           visitText(block.signer.date);
           break;
         case 'divider':
-        case 'pageBreak':
         case 'pageNumber':
           break;
       }

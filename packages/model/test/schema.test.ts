@@ -14,7 +14,7 @@ describe('validateModel', () => {
       blocks: [
         { id: 'a', type: 'image', assetHash: 'nope' },
         { id: 'a', type: 'divider' },
-        { id: 'b', type: 'signature', mode: 'slot', signer: {} },
+        { id: 'b', type: 'signature', assetHash: 'gone', signer: {} },
       ],
     };
     const result = validateModel(bad);
@@ -23,7 +23,7 @@ describe('validateModel', () => {
     expect(result.issues.map((i) => i.message)).toEqual([
       'No asset "nope"',
       'Duplicate block id "a"',
-      'A signature slot needs a slotId',
+      'No asset "gone"',
     ]);
   });
 
