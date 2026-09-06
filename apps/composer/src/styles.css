@@ -1,7 +1,14 @@
 :root { color-scheme: light; }
 html, body, #root { height: 100%; margin: 0; }
 .pw-loading { display: grid; place-items: center; height: 100%; color: #666; font-family: system-ui, sans-serif; }
-.pw-header-actions select { font: inherit; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; margin-right: 8px; }
+.pw-header-actions { display: flex; align-items: center; gap: 6px; margin-right: 8px; }
+.pw-header-actions select, .pw-header-actions button { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+.pw-header-actions select { max-width: 220px; }
+.pw-header-actions button.pw-danger { color: #9b1c1c; }
+.pw-notice { font-size: 12px; color: #666; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-asset-field { display: grid; gap: 6px; }
+.pw-asset-field select, .pw-asset-field button { font: inherit; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; }
+.pw-asset-thumb { max-width: 100%; max-height: 64px; object-fit: contain; border: 1px solid #e5e5e5; background: #fafafa; padding: 4px; }
 
 /* Canvas: a page at true scale (CSS pt), themed by variables set on the page */
 .pw-page { background: #fff; margin: 24px auto; box-shadow: 0 2px 14px rgba(0,0,0,.18); color: var(--pw-fg, #1b1b1b); font-family: var(--pw-font, Inter, system-ui, sans-serif); font-size: var(--pw-body, 10pt); line-height: 1.45; display: flex; flex-direction: column; box-sizing: border-box; }

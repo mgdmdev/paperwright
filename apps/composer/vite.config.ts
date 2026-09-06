@@ -7,6 +7,6 @@ import { playgroundApi } from '../playground/server/api';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), playgroundApi(path.resolve(here, '../../examples/basic'))],
+  plugins: [react(), playgroundApi(path.resolve(here, '../../examples/basic'), path.resolve(here, '../../.paperwright/assets'))],
   server: { port: 5181, strictPort: true },
 });

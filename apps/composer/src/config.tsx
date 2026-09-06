@@ -1,5 +1,6 @@
 import type { Slot } from '@puckeditor/core';
 import type { ReactNode } from 'react';
+import { assetField } from './fields/AssetField';
 import { bindingText, pathText } from './fields/BindingText';
 import type { ComposerConfig } from './puck';
 
@@ -96,11 +97,8 @@ const Frame = ({ label, children, tone = 'muted' }: { label: string; children: R
 
 const columnStyle = (fraction: number) => ({ flexGrow: fraction || 1, flexBasis: 0, minWidth: 0 });
 
-/** The editor configuration; assets are known only at runtime, so the image picker is built here. */
-export function createConfig(assets: string[]): ComposerConfig {
-  const assetField = assets.length
-    ? ({ type: 'select', label: 'Asset', options: [{ label: 'none', value: '' }, ...assets.map((a) => ({ label: a, value: a }))] } as const)
-    : ({ type: 'text', label: 'Asset hash' } as const);
+/** The editor configuration. Image pickers read the live asset store, so uploads appear at once. */
+export function createConfig(): ComposerConfig {
   return {
   categories: {
     text: { title: 'Text', components: ['Heading', 'Text', 'List', 'KeyValue', 'Divider'] },
@@ -196,14 +194,14 @@ export function createConfig(assets: string[]): ComposerConfig {
     Image: {
       label: 'Image',
       fields: {
-        assetHash: assetField,
+        assetHash: assetField('Image'),
         width: { type: 'number', label: 'Width (pt)', min: 0 },
         height: { type: 'number', label: 'Height (pt, 0 = auto)', min: 0 },
         fit: { type: 'radio', label: 'Fit', options: [{ label: 'Contain', value: 'contain' }, { label: 'Cover', value: 'cover' }] },
         align: { type: 'radio', label: 'Align', options: alignOptions },
         caption: bindingText('Caption'),
       },
-      defaultProps: { assetHash: assets[0] ?? '', width: 120, height: 0, fit: 'contain', align: 'left', caption: '' },
+      defaultProps: { assetHash: '', width: 120, height: 0, fit: 'contain', align: 'left', caption: '' },
       render: ({ assetHash, width, height, fit, align, caption }) => (
         <div className="pw-image" style={{ textAlign: align }}>
           {assetHash ? <img src={`/api/assets/${assetHash}`} alt="" style={{ width: width ? `${width}pt` : undefined, height: height ? `${height}pt` : undefined, objectFit: fit }} /> : <div className="pw-placeholder">image: pick an asset</div>}
@@ -357,7 +355,7 @@ export function createConfig(assets: string[]): ComposerConfig {
         name: bindingText('Name'),
         title: bindingText('Title'),
         date: bindingText('Date'),
-        assetHash: assetField,
+        assetHash: assetField('Signature image (optional)', true),
       },
       defaultProps: { variant: 'single', name: '', title: '', date: '', assetHash: '' },
       render: ({ name, title, date, assetHash }) => (

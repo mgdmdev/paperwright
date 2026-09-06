@@ -5,3 +5,4 @@ dist
 coverage
 .turbo
 examples/*/out
+.paperwright/

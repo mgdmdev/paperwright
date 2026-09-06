@@ -253,8 +253,28 @@ export function componentToBlock(c: Component): Block {
   }
 }
 
-export function dataToModel(data: ComposerData, assets: { hash: string; mime: 'image/png' | 'image/jpeg' | 'image/svg+xml' }[], id = 'template'): DocumentModel {
+/** Every asset hash the blocks refer to, so a template lists only what it uses. */
+export function referencedAssets(blocks: Block[], out = new Set<string>()): Set<string> {
+  for (const b of blocks) {
+    if (b.type === 'image') out.add(b.assetHash);
+    if (b.type === 'signature' && b.assetHash) out.add(b.assetHash);
+    if (b.type === 'section' || b.type === 'keepTogether' || b.type === 'repeat') referencedAssets(b.blocks, out);
+    if (b.type === 'columns') b.columns.forEach((c) => referencedAssets(c.blocks, out));
+    if (b.type === 'if') {
+      referencedAssets(b.then, out);
+      if (b.else) referencedAssets(b.else, out);
+    }
+  }
+  return out;
+}
+
+export function dataToModel(data: ComposerData, known: { hash: string; mime: 'image/png' | 'image/jpeg' | 'image/svg+xml' }[], id = 'template'): DocumentModel {
   const r = (data.root.props ?? {}) as Partial<RootProps>;
+  const blocks = (data.content as Component[]).map(componentToBlock);
+  const header = list(r.header).map(componentToBlock);
+  const footer = list(r.footer).map(componentToBlock);
+  const used = referencedAssets([...blocks, ...header, ...footer]);
+  const assets = known.filter((a) => used.has(a.hash));
   const model: DocumentModel = {
     version: 1,
     id,
@@ -266,10 +286,8 @@ export function dataToModel(data: ComposerData, assets: { hash: string; mime: 'i
       orientation: r.orientation ?? 'portrait',
       margins: { top: r.marginTop ?? 56, right: r.marginRight ?? 48, bottom: r.marginBottom ?? 56, left: r.marginLeft ?? 48 } },
     assets,
-    blocks: (data.content as Component[]).map(componentToBlock),
+    blocks,
   };
-  const header = list(r.header).map(componentToBlock);
-  const footer = list(r.footer).map(componentToBlock);
   if (header.length) model.header = header;
   if (footer.length) model.footer = footer;
   return model;

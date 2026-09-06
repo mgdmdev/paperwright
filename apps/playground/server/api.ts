@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
@@ -12,23 +12,45 @@ import type { ThemeOverrides } from '@paperwright/pdf';
  * The playground's API, served by the Vite dev server itself so there is one process to run.
  * GET  /api/examples      → the example templates and data, and the assets as { hash, mime }
  * GET  /api/themes        → the built-in theme presets, for canvas previews
- * GET  /api/assets/<hash> → an example image by content hash
+ * GET  /api/assets/<hash> → an image by content hash
+ * POST /api/assets        → { name, mime, base64 } → { hash, mime }; stored under uploadsDir
  * POST /api/render        → { model, data, theme?, themeOverrides?, locale? }
  *                           → { pdf: base64, warnings, renderMs }, or 400 { issues } / { error }
- * Assets are the example images, keyed by the same content hash the templates use.
+ * Assets are the example images plus uploads, keyed by the content hash the templates use.
  */
 export type AssetMime = 'image/png' | 'image/jpeg';
 
-export function playgroundApi(examplesDir: string): Plugin {
+const hashOf = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+
+/** The bytes decide the type; a declared mime is not trusted. */
+const sniffMime = (bytes: Uint8Array): AssetMime | null => {
+  if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  return null;
+};
+
+const MAX_UPLOAD = 5 * 1024 * 1024;
+
+export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
   const assets = new Map<string, { bytes: Uint8Array; mime: AssetMime }>();
 
-  const loadAssets = async () => {
-    for (const file of await readdir(path.join(examplesDir, 'assets'))) {
-      if (!/\.(png|jpe?g)$/i.test(file)) continue;
-      const bytes = new Uint8Array(await readFile(path.join(examplesDir, 'assets', file)));
-      const mime: AssetMime = /\.png$/i.test(file) ? 'image/png' : 'image/jpeg';
-      assets.set(createHash('sha256').update(bytes).digest('hex').slice(0, 16), { bytes, mime });
+  const loadDir = async (dir: string) => {
+    let files: string[] = [];
+    try {
+      files = await readdir(dir);
+    } catch {
+      return;
     }
+    for (const file of files) {
+      if (!/\.(png|jpe?g)$/i.test(file)) continue;
+      const bytes = new Uint8Array(await readFile(path.join(dir, file)));
+      const mime = sniffMime(bytes);
+      if (mime) assets.set(hashOf(bytes), { bytes, mime });
+    }
+  };
+  const loadAssets = async () => {
+    await loadDir(path.join(examplesDir, 'assets'));
+    await loadDir(uploadsDir);
   };
 
   /** A rejected async handler must answer, not take the dev server down as an unhandled rejection. */
@@ -79,7 +101,28 @@ export function playgroundApi(examplesDir: string): Plugin {
         json(res, 200, { names, examples, assets: [...assets].map(([hash, a]) => ({ hash, mime: a.mime })) });
       }));
       server.middlewares.use('/api/themes', safe((_req, res) => json(res, 200, themePresets)));
-      server.middlewares.use('/api/assets', safe((req, res) => {
+      server.middlewares.use('/api/assets', safe(async (req, res) => {
+        if (req.method === 'POST') {
+          let raw: unknown;
+          try {
+            raw = await readJson(req);
+          } catch {
+            return json(res, 400, { error: 'Body is not JSON' });
+          }
+          const body = (typeof raw === 'object' && raw !== null ? raw : {}) as { base64?: unknown };
+          if (typeof body.base64 !== 'string') return json(res, 400, { error: 'Expected { base64 }' });
+          const bytes = new Uint8Array(Buffer.from(body.base64, 'base64'));
+          if (bytes.length === 0 || bytes.length > MAX_UPLOAD) return json(res, 400, { error: `Image must be between 1 byte and ${MAX_UPLOAD / 1024 / 1024} MB` });
+          const mime = sniffMime(bytes);
+          if (!mime) return json(res, 400, { error: 'Only PNG and JPEG images are accepted' });
+          const hash = hashOf(bytes);
+          if (!assets.has(hash)) {
+            await mkdir(uploadsDir, { recursive: true });
+            await writeFile(path.join(uploadsDir, `${hash}.${mime === 'image/png' ? 'png' : 'jpg'}`), bytes);
+            assets.set(hash, { bytes, mime });
+          }
+          return json(res, 200, { hash, mime });
+        }
         const hash = (req.url ?? '').replace(/^\//, '').split('?')[0] ?? '';
         const asset = assets.get(hash);
         if (!asset) return json(res, 404, { error: `no asset ${hash}` });

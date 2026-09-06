@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { validateModel } from '@paperwright/model';
+import { useAssets } from '../assets';
 import { PdfPages } from '../PdfPages';
 import { usePuckStore } from '../puck';
 import { requestRender } from '../render-client';
 import type { Issue } from '../render-client';
 import { dataToModel } from '../transform';
-
-export interface AssetRef {
-  hash: string;
-  mime: 'image/png' | 'image/jpeg';
-}
 
 /** Puck mounts every plugin panel; only render while ours is the open one. */
 const isOpen = (ui: { leftSideBarVisible: boolean; plugin: { current: string | null } }) =>
@@ -19,7 +15,8 @@ const isOpen = (ui: { leftSideBarVisible: boolean; plugin: { current: string | n
  * The plugin panel: what the current canvas renders to, as a real PDF, plus the issues and
  * warnings the model and renderer report. Re-renders after edits settle, while the panel is open.
  */
-export function PreviewPanel({ assets }: { assets: AssetRef[] }) {
+export function PreviewPanel() {
+  const assets = useAssets();
   const data = usePuckStore((s) => s.appState.data);
   const open = usePuckStore((s) => isOpen(s.appState.ui));
   const [pdf, setPdf] = useState<ArrayBuffer | null>(null);
