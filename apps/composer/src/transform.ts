@@ -1,5 +1,6 @@
 import type { Slot } from '@puckeditor/core';
-import type { Block, DocumentModel, RichText, Span } from '@paperwright/model';
+import { formatBinding, parseTemplate } from '@paperwright/model';
+import type { Binding, BindingOrString, Block, DocumentModel, RichText, Span } from '@paperwright/model';
 import type { ComposerData } from './puck';
 
 /**
@@ -15,7 +16,10 @@ export interface RootProps extends Record<string, unknown> {
   name: string;
   locale: string;
   theme: string;
-  pageSize: 'A4' | 'Letter' | 'Legal';
+  pageSize: 'A4' | 'Letter' | 'Legal' | 'custom';
+  /** Points, used when pageSize is custom. */
+  pageWidth: number;
+  pageHeight: number;
   orientation: 'portrait' | 'landscape';
   marginTop: number;
   marginRight: number;
@@ -30,7 +34,18 @@ export interface RootProps extends Record<string, unknown> {
 let counter = 0;
 const newId = (type: string) => `${type}-${Date.now().toString(36)}${(counter++).toString(36)}`;
 
-const text = (t: RichText) => ({ spans: t.spans.map((s) => ({ text: String(s.text), bold: !!s.bold, italic: !!s.italic, underline: !!s.underline, link: String(s.link ?? ''), color: s.color ?? '' })), align: t.align ?? 'left' });
+/** The editor holds every binding as its inline `{{ }}` form; the object form is rewritten to it. */
+const bind = (v: BindingOrString | undefined | null): string => (v === undefined || v === null ? '' : typeof v === 'string' ? v : formatBinding(v));
+
+/** An if-test typed as a bare path or as `{{ path | filter }}` becomes the model's Binding. */
+const bindingFromExpression = (raw: string): Binding => {
+  const trimmed = raw.trim();
+  if (!trimmed.includes('{{')) return { var: trimmed };
+  const part = parseTemplate(trimmed).find((x) => x.kind === 'binding');
+  return part && part.kind === 'binding' ? part.binding : { var: '' };
+};
+
+const text = (t: RichText) => ({ spans: t.spans.map((s) => ({ text: bind(s.text), bold: !!s.bold, italic: !!s.italic, underline: !!s.underline, link: bind(s.link), color: s.color ?? '' })), align: t.align ?? 'left' });
 
 const toSpans = (spans: { text: string; bold?: boolean; italic?: boolean; underline?: boolean; link?: string; color?: string }[]): Span[] =>
   spans.map((s) => {
@@ -53,39 +68,39 @@ export function blockToComponent(block: Block): Component {
   const id = block.id;
   switch (block.type) {
     case 'heading':
-      return { type: 'Heading', props: { id, level: block.level, text: str(block.text), align: block.align ?? 'left', keepWithNext: !!block.keepWithNext } };
+      return { type: 'Heading', props: { id, level: block.level, text: bind(block.text), align: block.align ?? 'left', keepWithNext: !!block.keepWithNext } };
     case 'text':
       return { type: 'Text', props: { id, ...text(block.rich) } };
     case 'divider':
       return { type: 'Divider', props: { id, variant: block.variant ?? 'solid' } };
     case 'image':
-      return { type: 'Image', props: { id, assetHash: block.assetHash, width: block.width ?? 120, height: block.height ?? 0, fit: block.fit ?? 'contain', align: block.align ?? 'left', caption: str(block.caption) } };
+      return { type: 'Image', props: { id, assetHash: block.assetHash, width: block.width ?? 120, height: block.height ?? 0, fit: block.fit ?? 'contain', align: block.align ?? 'left', caption: bind(block.caption) } };
     case 'qrcode':
-      return { type: 'QRCode', props: { id, value: str(block.value), size: block.size ?? 72, align: block.align ?? 'left' } };
+      return { type: 'QRCode', props: { id, value: bind(block.value), size: block.size ?? 72, align: block.align ?? 'left' } };
     case 'keyValue':
-      return { type: 'KeyValue', props: { id, items: block.items.map((i) => ({ key: str(i.key), value: str(i.value) })) } };
+      return { type: 'KeyValue', props: { id, items: block.items.map((i) => ({ key: bind(i.key), value: bind(i.value) })) } };
     case 'list':
       return { type: 'List', props: { id, variant: block.variant, items: block.items.map((i) => ({ spans: text(i).spans })) } };
     case 'table':
-      return { type: 'Table', props: { id, variant: block.variant ?? 'line', columns: block.columns.map((c) => ({ key: c.key, header: str(c.header), width: c.width ?? 0, align: c.align ?? 'left' })), rows: block.rows.map((r) => ({ cells: r.map((c) => ({ value: str(c) })) })) } };
+      return { type: 'Table', props: { id, variant: block.variant ?? 'line', columns: block.columns.map((c) => ({ key: c.key, header: bind(c.header), width: c.width ?? 0, align: c.align ?? 'left' })), rows: block.rows.map((r) => ({ cells: r.map((c) => ({ value: bind(c) })) })) } };
     case 'dataTable':
-      return { type: 'DataTable', props: { id, rowBinding: block.rowBinding, variant: block.variant ?? 'line', emptyText: str(block.emptyText), columns: block.columns.map((c) => ({ key: c.key, header: str(c.header), cell: str(c.cell), width: c.width ?? 0, align: c.align ?? 'left' })) } };
+      return { type: 'DataTable', props: { id, rowBinding: block.rowBinding, variant: block.variant ?? 'line', emptyText: bind(block.emptyText), columns: block.columns.map((c) => ({ key: c.key, header: bind(c.header), cell: bind(c.cell), width: c.width ?? 0, align: c.align ?? 'left' })) } };
     case 'section':
-      return { type: 'Section', props: { id, title: str(block.title), content: block.blocks.map(blockToComponent) } };
+      return { type: 'Section', props: { id, title: bind(block.title), content: block.blocks.map(blockToComponent) } };
     case 'columns':
       return { type: 'Columns', props: { id, gap: block.gap ?? 0, align: block.align ?? 'top', columns: block.columns.map((c) => ({ width: c.width ?? 0, content: c.blocks.map(blockToComponent) })) } };
     case 'repeat':
       return { type: 'Repeat', props: { id, forEach: block.forEach, as: block.as, content: block.blocks.map(blockToComponent) } };
     case 'if':
-      return { type: 'If', props: { id, test: block.test.var, whenTrue: block.then.map(blockToComponent), whenFalse: (block.else ?? []).map(blockToComponent) } };
+      return { type: 'If', props: { id, test: formatBinding(block.test), whenTrue: block.then.map(blockToComponent), whenFalse: (block.else ?? []).map(blockToComponent) } };
     case 'keepTogether':
       return { type: 'KeepTogether', props: { id, content: block.blocks.map(blockToComponent) } };
     case 'pageBreak':
       return { type: 'PageBreak', props: { id } };
     case 'signature':
-      return { type: 'Signature', props: { id, variant: block.variant ?? 'single', assetHash: block.assetHash ?? '', name: str(block.signer.name), title: str(block.signer.title), date: str(block.signer.date) } };
+      return { type: 'Signature', props: { id, variant: block.variant ?? 'single', assetHash: block.assetHash ?? '', name: bind(block.signer.name), title: bind(block.signer.title), date: bind(block.signer.date) } };
     case 'watermark':
-      return { type: 'Watermark', props: { id, text: str(block.text), opacity: block.opacity ?? 0.08 } };
+      return { type: 'Watermark', props: { id, text: bind(block.text), opacity: block.opacity ?? 0.08 } };
     case 'pageNumber':
       return { type: 'PageNumber', props: { id, format: block.format ?? 'Page {page} of {total}', align: block.align ?? 'center' } };
   }
@@ -101,7 +116,9 @@ export function modelToData(model: DocumentModel, sampleData: unknown): Composer
         name: model.name,
         locale: model.locale,
         theme: model.theme ?? 'professional',
-        pageSize: typeof model.page.size === 'string' ? model.page.size : 'A4',
+        pageSize: typeof model.page.size === 'string' ? model.page.size : 'custom',
+        pageWidth: typeof model.page.size === 'object' ? model.page.size.width : 0,
+        pageHeight: typeof model.page.size === 'object' ? model.page.size.height : 0,
         orientation: model.page.orientation,
         marginTop: model.page.margins.top,
         marginRight: model.page.margins.right,
@@ -206,7 +223,7 @@ export function componentToBlock(c: Component): Block {
     case 'Repeat':
       return { id, type: 'repeat', forEach: str(p.forEach), as: str(p.as) || 'item', blocks: list(p.content).map(componentToBlock) };
     case 'If': {
-      const b: Block = { id, type: 'if', test: { var: str(p.test) }, then: list(p.whenTrue).map(componentToBlock) };
+      const b: Block = { id, type: 'if', test: bindingFromExpression(str(p.test)), then: list(p.whenTrue).map(componentToBlock) };
       const otherwise = list(p.whenFalse).map(componentToBlock);
       if (otherwise.length) b.else = otherwise;
       return b;
@@ -244,7 +261,10 @@ export function dataToModel(data: ComposerData, assets: { hash: string; mime: 'i
     name: r.name || 'Untitled',
     locale: r.locale || 'en-GB',
     theme: r.theme || 'professional',
-    page: { size: r.pageSize ?? 'A4', orientation: r.orientation ?? 'portrait', margins: { top: r.marginTop ?? 56, right: r.marginRight ?? 48, bottom: r.marginBottom ?? 56, left: r.marginLeft ?? 48 } },
+    page: {
+      size: r.pageSize === 'custom' ? { width: num(r.pageWidth) ?? 595.28, height: num(r.pageHeight) ?? 841.89 } : (r.pageSize ?? 'A4'),
+      orientation: r.orientation ?? 'portrait',
+      margins: { top: r.marginTop ?? 56, right: r.marginRight ?? 48, bottom: r.marginBottom ?? 56, left: r.marginLeft ?? 48 } },
     assets,
     blocks: (data.content as Component[]).map(componentToBlock),
   };

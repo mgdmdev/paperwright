@@ -2,19 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { validateModel } from '@paperwright/model';
 import { PdfPages } from '../PdfPages';
 import { usePuckStore } from '../puck';
+import { requestRender } from '../render-client';
+import type { Issue } from '../render-client';
 import { dataToModel } from '../transform';
 
-interface Issue {
-  path: string;
-  message: string;
+export interface AssetRef {
+  hash: string;
+  mime: 'image/png' | 'image/jpeg';
 }
+
+/** Puck mounts every plugin panel; only render while ours is the open one. */
+const isOpen = (ui: { leftSideBarVisible: boolean; plugin: { current: string | null } }) =>
+  ui.leftSideBarVisible && ui.plugin.current === 'paperwright-preview';
 
 /**
  * The plugin panel: what the current canvas renders to, as a real PDF, plus the issues and
- * warnings the model and renderer report. Re-renders after edits settle.
+ * warnings the model and renderer report. Re-renders after edits settle, while the panel is open.
  */
-export function PreviewPanel({ assets }: { assets: string[] }) {
+export function PreviewPanel({ assets }: { assets: AssetRef[] }) {
   const data = usePuckStore((s) => s.appState.data);
+  const open = usePuckStore((s) => isOpen(s.appState.ui));
   const [pdf, setPdf] = useState<ArrayBuffer | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -23,11 +30,15 @@ export function PreviewPanel({ assets }: { assets: string[] }) {
   const inFlight = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    if (!open) return;
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
+      // Whatever was in flight answers an older canvas; it must not land after this pass.
+      inFlight.current?.abort();
+      inFlight.current = null;
       let model;
       try {
-        model = dataToModel(data, assets.map((hash) => ({ hash, mime: 'image/png' as const })));
+        model = dataToModel(data, assets);
       } catch (e) {
         setIssues([{ path: '', message: e instanceof Error ? e.message : String(e) }]);
         return;
@@ -46,29 +57,27 @@ export function PreviewPanel({ assets }: { assets: string[] }) {
         setStatus('sample data is not JSON');
         return;
       }
-      inFlight.current?.abort();
       const controller = new AbortController();
       inFlight.current = controller;
       setStatus('rendering…');
       try {
-        const res = await fetch('/api/render', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, data: sample }), signal: controller.signal });
-        if (!res.ok) {
-          const body = (await res.json()) as { issues?: Issue[]; error?: string };
-          setIssues(body.issues ?? [{ path: '', message: body.error ?? `render failed (${res.status})` }]);
+        const outcome = await requestRender({ model, data: sample }, controller.signal);
+        if (controller.signal.aborted) return;
+        if (!outcome.ok) {
+          setIssues(outcome.issues);
           setStatus('render failed');
           return;
         }
-        const bytes = await res.arrayBuffer();
-        setPdf(bytes);
+        setPdf(outcome.bytes);
         setIssues([]);
-        setWarnings(JSON.parse(decodeURIComponent(res.headers.get('X-Paperwright-Warnings') ?? '%5B%5D')) as string[]);
-        setStatus(`${Math.round(bytes.byteLength / 1024)} KB in ${res.headers.get('X-Render-Ms')} ms`);
+        setWarnings(outcome.warnings);
+        setStatus(`${Math.round(outcome.bytes.byteLength / 1024)} KB in ${outcome.renderMs} ms`);
       } catch (e) {
         if ((e as Error).name !== 'AbortError') setStatus(`render failed: ${e}`);
       }
     }, 600);
     return () => window.clearTimeout(timer.current);
-  }, [data, assets]);
+  }, [data, assets, open]);
 
   return (
     <div className="pw-panel">

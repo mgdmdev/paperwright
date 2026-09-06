@@ -165,12 +165,18 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
         </View>
       );
     }
-    case 'qrcode':
+    case 'qrcode': {
+      const value = block.value as string;
+      if (!value) {
+        ctx.warnings.push(`Block "${block.id}": QR code has no value`);
+        return null;
+      }
       return (
         <View key={block.id} style={{ alignItems: ALIGN_ITEMS[block.align ?? 'left'] }}>
-          <PdfQRCode value={block.value as string} size={block.size} />
+          <PdfQRCode value={value} size={block.size} />
         </View>
       );
+    }
     case 'keyValue':
       return <KeyValue key={block.id} items={block.items.map((i) => ({ key: i.key as string, value: i.value as string }))} />;
     case 'list':

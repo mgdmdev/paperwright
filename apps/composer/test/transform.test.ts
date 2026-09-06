@@ -50,6 +50,26 @@ describe('model ↔ Puck data', () => {
     expect(twice).toEqual(once);
   });
 
+  it('carries object-form bindings, if filters and a custom page size through the editor', () => {
+    const model = migrateModel({
+      version: 1, id: 't', name: 'T', locale: 'en',
+      page: { size: { width: 400, height: 600 }, orientation: 'landscape', margins: { top: 40, right: 40, bottom: 40, left: 40 } },
+      assets: [],
+      blocks: [
+        { id: 'h', type: 'heading', level: 1, text: { var: 'employee.name', filters: [{ name: 'upper' }] } },
+        { id: 'p', type: 'text', rich: { spans: [{ text: { var: 'a.b' }, link: { var: 'a.url' } }] } },
+        { id: 'i', type: 'if', test: { var: 'x', filters: [{ name: 'default', args: { value: 'yes' } }] }, then: [] },
+      ],
+    });
+    const back = dataToModel(modelToData(model, {}), [], 't');
+    expect(back.page.size).toEqual({ width: 400, height: 600 });
+    expect(back.blocks[0]).toMatchObject({ text: '{{ employee.name | upper }}' });
+    expect(back.blocks[1]).toMatchObject({ rich: { spans: [{ text: '{{ a.b }}', link: '{{ a.url }}' }] } });
+    expect(back.blocks[2]).toMatchObject({ test: { var: 'x', filters: [{ name: 'default', args: { value: 'yes' } }] } });
+    const data = { employee: { name: 'ama' }, a: { b: 'B', url: 'https://x' } };
+    expect(resolveDocument({ model: back, data }).blocks).toEqual(resolveDocument({ model, data }).blocks);
+  });
+
   it('gives a component placed without an id one, and keeps a template valid', () => {
     const data = modelToData(migrateModel({ version: 1, id: 't', name: 'T', locale: 'en', page: { size: 'A4', orientation: 'portrait', margins: { top: 40, right: 40, bottom: 40, left: 40 } }, assets: [], blocks: [] }), {});
     data.content = [{ type: 'Heading', props: { level: 2, text: 'New', align: 'left', keepWithNext: false } } as never];

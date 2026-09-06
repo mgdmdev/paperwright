@@ -5,13 +5,14 @@ import { migrateModel } from '@paperwright/model';
 import { createConfig } from './config';
 import type { CanvasMetadata } from './config';
 import { PreviewPanel } from './panel/PreviewPanel';
+import type { AssetRef } from './panel/PreviewPanel';
 import type { ComposerData } from './puck';
 import { dataToModel, modelToData } from './transform';
 
 interface Examples {
   names: string[];
   examples: Record<string, { template: unknown; data: unknown }>;
-  assets: string[];
+  assets: AssetRef[];
 }
 
 const download = (name: string, text: string) => {
@@ -48,8 +49,9 @@ export function App() {
     setKey((k) => k + 1);
   };
 
-  const metadata = useMemo<CanvasMetadata>(() => ({ themes: themes ?? {}, assets: examples?.assets ?? [] }), [themes, examples]);
-  const config = useMemo(() => createConfig(examples?.assets ?? []), [examples]);
+  const hashes = useMemo(() => (examples?.assets ?? []).map((a) => a.hash), [examples]);
+  const metadata = useMemo<CanvasMetadata>(() => ({ themes: themes ?? {}, assets: hashes }), [themes, hashes]);
+  const config = useMemo(() => createConfig(hashes), [hashes]);
 
   const plugins = useMemo<Plugin[]>(
     () => [
@@ -78,7 +80,7 @@ export function App() {
       iframe={{ enabled: false }}
       headerTitle={`paperwright · ${selected}`}
       onPublish={(d) => {
-        const model = dataToModel(d, examples.assets.map((hash) => ({ hash, mime: 'image/png' as const })), selected);
+        const model = dataToModel(d, examples.assets, selected);
         download(selected, JSON.stringify(model, null, 2));
       }}
       overrides={{

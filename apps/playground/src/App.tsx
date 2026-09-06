@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PdfPages } from './PdfPages';
+import { requestRender } from './render-client';
 
 interface Examples {
   names: string[];
   examples: Record<string, { template: unknown; data: unknown }>;
 }
 
-interface Issue {
-  path: string;
-  message: string;
-}
+import type { Issue } from './render-client';
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 2);
 
@@ -67,31 +65,17 @@ export function App() {
     inFlight.current = controller;
     setStatus({ text: 'rendering…' });
     try {
-      const res = await fetch('/api/render', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: t.value, data: d.value }),
-        signal: controller.signal,
-      });
-      if (res.status === 400) {
-        const body = (await res.json()) as { issues?: Issue[]; error?: string };
-        setIssues(body.issues ?? [{ path: '', message: body.error ?? 'invalid' }]);
+      const outcome = await requestRender({ model: t.value, data: d.value }, controller.signal);
+      if (!outcome.ok) {
+        setIssues(outcome.issues);
         setWarnings([]);
-        setStatus({ text: 'template is invalid', error: true });
+        setStatus({ text: 'template is invalid or the render failed', error: true });
         return;
       }
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        setIssues([{ path: '', message: body.error ?? `render failed (${res.status})` }]);
-        setWarnings([]);
-        setStatus({ text: 'render failed', error: true });
-        return;
-      }
-      const bytes = await res.arrayBuffer();
-      setPdf(bytes);
+      setPdf(outcome.bytes);
       setIssues([]);
-      setWarnings(JSON.parse(decodeURIComponent(res.headers.get('X-Paperwright-Warnings') ?? '%5B%5D')) as string[]);
-      setStatus({ text: `${Math.round(bytes.byteLength / 1024)} KB in ${res.headers.get('X-Render-Ms')} ms` });
+      setWarnings(outcome.warnings);
+      setStatus({ text: `${Math.round(outcome.bytes.byteLength / 1024)} KB in ${outcome.renderMs} ms` });
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
       setStatus({ text: `render failed: ${e}`, error: true });

@@ -9,8 +9,22 @@ export function PdfPages({ bytes }: { bytes: ArrayBuffer | null }) {
   const [pages, setPages] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  const [width, setWidth] = useState(0);
+
+  // Pages are fitted to the container, and refitted when it changes size or becomes visible.
   useEffect(() => {
-    if (!bytes || !host.current) return;
+    const el = host.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = Math.floor(entry?.contentRect.width ?? 0);
+      if (w > 0) setWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!bytes || !host.current || width === 0) return;
     let cancelled = false;
     const container = host.current;
     const task = pdfjs.getDocument({ data: new Uint8Array(bytes.slice(0)) });
@@ -21,13 +35,13 @@ export function PdfPages({ bytes }: { bytes: ArrayBuffer | null }) {
         container.replaceChildren();
         setPages(pdf.numPages);
         setError(null);
-        const width = Math.max(320, container.clientWidth - 48);
+        const pageWidth = Math.max(160, width - 48);
         const dpr = window.devicePixelRatio || 1;
         for (let n = 1; n <= pdf.numPages; n++) {
           const page = await pdf.getPage(n);
           if (cancelled) return;
           const base = page.getViewport({ scale: 1 });
-          const scale = width / base.width;
+          const scale = pageWidth / base.width;
           const viewport = page.getViewport({ scale: scale * dpr });
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
@@ -46,7 +60,7 @@ export function PdfPages({ bytes }: { bytes: ArrayBuffer | null }) {
       cancelled = true;
       void task.destroy();
     };
-  }, [bytes]);
+  }, [bytes, width]);
 
   return (
     <div className="pages" ref={host} data-pages={pages}>

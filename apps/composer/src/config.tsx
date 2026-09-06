@@ -1,6 +1,6 @@
 import type { Slot } from '@puckeditor/core';
 import type { ReactNode } from 'react';
-import { bindingText } from './fields/BindingText';
+import { bindingText, pathText } from './fields/BindingText';
 import type { ComposerConfig } from './puck';
 
 /** Theme tokens the canvas needs; the server sends the full presets. */
@@ -113,21 +113,23 @@ export function createConfig(assets: string[]): ComposerConfig {
       name: { type: 'text', label: 'Template name' },
       locale: { type: 'text', label: 'Locale (BCP 47)' },
       theme: { type: 'select', label: 'Theme', options: [{ label: 'Professional', value: 'professional' }, { label: 'Minimal', value: 'minimal' }] },
-      pageSize: { type: 'select', label: 'Page size', options: [{ label: 'A4', value: 'A4' }, { label: 'Letter', value: 'Letter' }, { label: 'Legal', value: 'Legal' }] },
+      pageSize: { type: 'select', label: 'Page size', options: [{ label: 'A4', value: 'A4' }, { label: 'Letter', value: 'Letter' }, { label: 'Legal', value: 'Legal' }, { label: 'Custom', value: 'custom' }] },
+      pageWidth: { type: 'number', label: 'Custom width (pt)', min: 0 },
+      pageHeight: { type: 'number', label: 'Custom height (pt)', min: 0 },
       orientation: { type: 'radio', label: 'Orientation', options: [{ label: 'Portrait', value: 'portrait' }, { label: 'Landscape', value: 'landscape' }] },
       marginTop: { type: 'number', label: 'Margin top (pt)', min: 0 },
       marginRight: { type: 'number', label: 'Margin right (pt)', min: 0 },
       marginBottom: { type: 'number', label: 'Margin bottom (pt)', min: 0 },
       marginLeft: { type: 'number', label: 'Margin left (pt)', min: 0 },
-      header: { type: 'slot', label: 'Header (every page)' },
-      footer: { type: 'slot', label: 'Footer (every page)' },
+      header: { type: 'slot', label: 'Header (every page)', disallow: ['PageBreak'] },
+      footer: { type: 'slot', label: 'Footer (every page)', disallow: ['PageBreak'] },
       sampleData: { type: 'textarea', label: 'Sample data (JSON, for preview and the variable picker)' },
     },
-    defaultProps: { name: 'Untitled', locale: 'en-GB', theme: 'professional', pageSize: 'A4', orientation: 'portrait', marginTop: 56, marginRight: 48, marginBottom: 56, marginLeft: 48, header: [], footer: [], sampleData: '{}' },
-    render: ({ children, header: Header, footer: Footer, theme, pageSize, orientation, marginTop, marginRight, marginBottom, marginLeft, puck }) => {
+    defaultProps: { name: 'Untitled', locale: 'en-GB', theme: 'professional', pageSize: 'A4', pageWidth: 0, pageHeight: 0, orientation: 'portrait', marginTop: 56, marginRight: 48, marginBottom: 56, marginLeft: 48, header: [], footer: [], sampleData: '{}' },
+    render: ({ children, header: Header, footer: Footer, theme, pageSize, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, puck }) => {
       const t = (puck.metadata as CanvasMetadata | undefined)?.themes?.[theme];
       const sizes: Record<string, [number, number]> = { A4: [595.28, 841.89], Letter: [612, 792], Legal: [612, 1008] };
-      const [w, h] = sizes[pageSize] ?? sizes.A4!;
+      const [w, h] = pageSize === 'custom' && pageWidth && pageHeight ? [pageWidth, pageHeight] : (sizes[pageSize] ?? sizes.A4!);
       const width = orientation === 'landscape' ? h : w;
       const vars = t
         ? ({
@@ -269,7 +271,7 @@ export function createConfig(assets: string[]): ComposerConfig {
     DataTable: {
       label: 'Data table (rows from data)',
       fields: {
-        rowBinding: bindingText('Rows from (path to an array)'),
+        rowBinding: pathText('Rows from (path to an array)'),
         variant: { type: 'select', label: 'Style', options: tableVariants },
         columns: { type: 'array', label: 'Columns', getItemSummary: (c) => c.header || c.key || 'column', defaultItemProps: { key: '', header: '', cell: '', width: 0, align: 'left' }, arrayFields: { key: { type: 'text', label: 'Key' }, header: bindingText('Header'), cell: bindingText('Cell (relative to each row)'), width: { type: 'number', label: 'Width (fraction, 0 = share)', min: 0, max: 1, step: 0.05 }, align: { type: 'radio', label: 'Align', options: alignOptions } } },
         emptyText: bindingText('Text when there are no rows'),
@@ -301,7 +303,7 @@ export function createConfig(assets: string[]): ComposerConfig {
     Columns: {
       label: 'Columns',
       fields: {
-        columns: { type: 'array', label: 'Columns', getItemSummary: (_c, i) => `Column ${(i ?? 0) + 1}`, defaultItemProps: { width: 0, content: [] }, arrayFields: { width: { type: 'number', label: 'Width (fraction, 0 = share)', min: 0, max: 1, step: 0.05 }, content: { type: 'slot' } } },
+        columns: { type: 'array', label: 'Columns', getItemSummary: (_c, i) => `Column ${(i ?? 0) + 1}`, defaultItemProps: { width: 0, content: [] }, arrayFields: { width: { type: 'number', label: 'Width (fraction, 0 = share)', min: 0, max: 1, step: 0.05 }, content: { type: 'slot', disallow: ['PageBreak'] } } },
         gap: { type: 'number', label: 'Gap (pt, 0 = theme)', min: 0 },
         align: { type: 'radio', label: 'Vertical align', options: [{ label: 'Top', value: 'top' }, { label: 'Middle', value: 'middle' }, { label: 'Bottom', value: 'bottom' }] },
       },
@@ -318,7 +320,7 @@ export function createConfig(assets: string[]): ComposerConfig {
     },
     Repeat: {
       label: 'Repeat (for each)',
-      fields: { forEach: bindingText('For each item in (path to an array)'), as: { type: 'text', label: 'Call each item' }, content: { type: 'slot' } },
+      fields: { forEach: pathText('For each item in (path to an array)'), as: { type: 'text', label: 'Call each item' }, content: { type: 'slot' } },
       defaultProps: { forEach: 'items', as: 'item', content: [] },
       render: ({ forEach, as, content: Content }) => (
         <Frame label={`repeat for each ${as || 'item'} in ${forEach || '?'}`} tone="logic"><Content minEmptyHeight={40} /></Frame>
@@ -326,8 +328,8 @@ export function createConfig(assets: string[]): ComposerConfig {
     },
     If: {
       label: 'If (conditional)',
-      fields: { test: bindingText('Show when this has a value (path)'), whenTrue: { type: 'slot', label: 'Then' }, whenFalse: { type: 'slot', label: 'Otherwise' } },
-      defaultProps: { test: '', whenTrue: [], whenFalse: [] },
+      fields: { test: bindingText('Show when this has a value ({{ path }}, filters allowed)'), whenTrue: { type: 'slot', label: 'Then' }, whenFalse: { type: 'slot', label: 'Otherwise' } },
+      defaultProps: { test: '{{ flag }}', whenTrue: [], whenFalse: [] },
       render: ({ test, whenTrue: Then, whenFalse: Otherwise }) => (
         <Frame label={`if ${test || '?'}`} tone="logic">
           <Then minEmptyHeight={32} />
@@ -338,7 +340,7 @@ export function createConfig(assets: string[]): ComposerConfig {
     },
     KeepTogether: {
       label: 'Keep together',
-      fields: { content: { type: 'slot' } },
+      fields: { content: { type: 'slot', disallow: ['PageBreak'] } },
       defaultProps: { content: [] },
       render: ({ content: Content }) => <Frame label="keep together on one page"><Content minEmptyHeight={40} /></Frame>,
     },
