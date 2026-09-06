@@ -59,6 +59,23 @@ describe('editTemplate', () => {
 });
 
 describe('suggestSampleData', () => {
+  it('reports every binding unresolved when no answer parsed, rather than an empty list', async () => {
+    const result = await suggestSampleData({ client: scripted(['nope']), model: good as never, attempts: 1 });
+    expect(result.data).toEqual({});
+    expect(result.unresolved).toEqual(['candidate.name', 'role.title', 'role.startDate', 'package.items']);
+  });
+
+  it('treats a non-array fed to a data table as unresolved and sends the warning back', async () => {
+    const first = { candidate: { name: 'Ama' }, role: { title: 'Designer', startDate: '2026-10-01' }, package: { items: { label: 'x' } } };
+    const second = { ...first, package: { items: [{ label: 'Salary', amount: 5000 }] } };
+    const client = scripted([JSON.stringify(first), JSON.stringify(second)]);
+    const result = await suggestSampleData({ client, model: good as never });
+    expect(result.attempts).toBe(2);
+    expect(result.unresolved).toEqual([]);
+    expect(client.calls[1]?.messages.at(-1)?.content).toContain('"package.items" is not an array');
+    expect(client.calls[0]?.temperature).toBeUndefined();
+  });
+
   it('asks again for bindings the resolver reports as empty', async () => {
     const first = { candidate: { name: 'Ama' }, role: { title: 'Designer' }, package: { items: [{ label: 'Salary', amount: 5000 }] } };
     const second = { ...first, role: { ...first.role, startDate: '2026-10-01' } };
@@ -66,6 +83,6 @@ describe('suggestSampleData', () => {
     const result = await suggestSampleData({ client, model: good as never });
     expect(result.attempts).toBe(2);
     expect(result.unresolved).toEqual([]);
-    expect(client.calls[1]?.messages.at(-1)?.content).toContain('- role.startDate');
+    expect(client.calls[1]?.messages.at(-1)?.content).toContain('No value for "role.startDate"');
   });
 });

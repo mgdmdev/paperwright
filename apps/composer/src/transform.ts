@@ -1,6 +1,6 @@
 import type { Slot } from '@puckeditor/core';
 import { formatBinding, parseTemplate } from '@paperwright/model';
-import type { Binding, BindingOrString, Block, DocumentModel, RichText, Span } from '@paperwright/model';
+import type { Asset, Binding, BindingOrString, Block, DocumentModel, RichText, Span } from '@paperwright/model';
 import type { ComposerData } from './puck';
 
 /**
@@ -29,6 +29,8 @@ export interface RootProps extends Record<string, unknown> {
   footer: Slot;
   /** Sample data for the preview and the variable picker; not part of the model. */
   sampleData: string;
+  /** The template's own asset declarations, kept so an image this server does not hold survives editing. */
+  assets: Asset[];
 }
 
 let counter = 0;
@@ -127,6 +129,7 @@ export function modelToData(model: DocumentModel, sampleData: unknown): Composer
         header: asSlot((model.header ?? []).map(blockToComponent)),
         footer: asSlot((model.footer ?? []).map(blockToComponent)),
         sampleData: JSON.stringify(sampleData ?? {}, null, 2),
+        assets: model.assets,
       },
     },
     content: asSlot(model.blocks.map(blockToComponent)) as ComposerData['content'],
@@ -268,13 +271,16 @@ export function referencedAssets(blocks: Block[], out = new Set<string>()): Set<
   return out;
 }
 
-export function dataToModel(data: ComposerData, known: { hash: string; mime: 'image/png' | 'image/jpeg' | 'image/svg+xml' }[], id = 'template'): DocumentModel {
+export function dataToModel(data: ComposerData, known: Asset[], id = 'template'): DocumentModel {
   const r = (data.root.props ?? {}) as Partial<RootProps>;
   const blocks = (data.content as Component[]).map(componentToBlock);
   const header = list(r.header).map(componentToBlock);
   const footer = list(r.footer).map(componentToBlock);
   const used = referencedAssets([...blocks, ...header, ...footer]);
-  const assets = known.filter((a) => used.has(a.hash));
+  const declared = Array.isArray(r.assets) ? (r.assets as Asset[]) : [];
+  const byHash = new Map<string, Asset>();
+  for (const a of [...declared, ...known]) if (used.has(a.hash) && !byHash.has(a.hash)) byHash.set(a.hash, { hash: a.hash, mime: a.mime, ...(a.width ? { width: a.width } : {}), ...(a.height ? { height: a.height } : {}) });
+  const assets = [...byHash.values()];
   const model: DocumentModel = {
     version: 1,
     id,

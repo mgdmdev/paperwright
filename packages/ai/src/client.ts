@@ -47,7 +47,7 @@ export function gemini({ apiKey, model = 'gemini-flash-latest', baseUrl = 'https
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-          generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), temperature: temperature ?? 0.2 },
+          generationConfig: { ...(json ? { responseMimeType: 'application/json' } : {}), ...(temperature !== undefined ? { temperature } : {}) },
         }),
       });
       if (!res.ok) return fail(res, 'Gemini');
@@ -76,7 +76,8 @@ export function openAiCompatible({ apiKey, model, baseUrl = 'https://api.openai.
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model,
-          temperature: temperature ?? 0.2,
+          // Only when asked for: reasoning models refuse any value but their default.
+          ...(temperature !== undefined ? { temperature } : {}),
           ...(json ? { response_format: { type: 'json_object' } } : {}),
           messages: [{ role: 'system', content: system }, ...messages],
         }),

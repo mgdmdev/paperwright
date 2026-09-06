@@ -83,10 +83,39 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
         });
     };
 
-  const readJson = (req: IncomingMessage): Promise<unknown> =>
+  class BodyTooLarge extends Error {
+    constructor(limit: number) {
+      super(`Body larger than ${Math.round(limit / 1024 / 1024)} MB`);
+      this.name = 'BodyTooLarge';
+    }
+  }
+  class BadRequest extends Error {
+    constructor(message: string, readonly issues?: unknown) {
+      super(message);
+      this.name = 'BadRequest';
+    }
+  }
+
+  /** Reads a JSON body within a byte limit, refusing by Content-Length first and by bytes seen second. */
+  const readJson = (req: IncomingMessage, limit: number): Promise<unknown> =>
     new Promise((resolve, reject) => {
+      const declared = Number(req.headers['content-length']);
+      if (Number.isFinite(declared) && declared > limit) {
+        req.resume();
+        reject(new BodyTooLarge(limit));
+        return;
+      }
       const chunks: Buffer[] = [];
-      req.on('data', (c: Buffer) => chunks.push(c));
+      let size = 0;
+      req.on('data', (c: Buffer) => {
+        size += c.length;
+        if (size > limit) {
+          reject(new BodyTooLarge(limit));
+          req.destroy();
+          return;
+        }
+        chunks.push(c);
+      });
       req.on('end', () => {
         try {
           resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
@@ -96,6 +125,9 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
       });
       req.on('error', reject);
     });
+  const MAX_JSON = 2 * 1024 * 1024;
+  /** A 5 MB image is about 6.7 MB of base64 plus the envelope. */
+  const MAX_UPLOAD_BODY = 7 * 1024 * 1024;
 
   const json = (res: ServerResponse, status: number, body: unknown) => {
     res.statusCode = status;
@@ -121,13 +153,8 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
       server.middlewares.use('/api/themes', safe((_req, res) => json(res, 200, themePresets)));
       server.middlewares.use('/api/assets', safe(async (req, res) => {
         if (req.method === 'POST') {
-          let raw: unknown;
-          try {
-            raw = await readJson(req);
-          } catch {
-            return json(res, 400, { error: 'Body is not JSON' });
-          }
-          const body = (typeof raw === 'object' && raw !== null ? raw : {}) as { base64?: unknown };
+          const body = await readObject(req, res, MAX_UPLOAD_BODY);
+          if (!body) return;
           if (typeof body.base64 !== 'string') return json(res, 400, { error: 'Expected { base64 }' });
           const bytes = new Uint8Array(Buffer.from(body.base64, 'base64'));
           if (bytes.length === 0 || bytes.length > MAX_UPLOAD) return json(res, 400, { error: `Image must be between 1 byte and ${MAX_UPLOAD / 1024 / 1024} MB` });
@@ -149,12 +176,12 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
         res.setHeader('Cache-Control', 'public, max-age=3600');
         res.end(Buffer.from(asset.bytes));
       }));
-      const readObject = async (req: IncomingMessage, res: ServerResponse): Promise<Record<string, unknown> | null> => {
+      const readObject = async (req: IncomingMessage, res: ServerResponse, limit = MAX_JSON): Promise<Record<string, unknown> | null> => {
         let raw: unknown;
         try {
-          raw = await readJson(req);
-        } catch {
-          json(res, 400, { error: 'Body is not JSON' });
+          raw = await readJson(req, limit);
+        } catch (e) {
+          json(res, e instanceof BodyTooLarge ? 413 : 400, { error: e instanceof BodyTooLarge ? e.message : 'Body is not JSON' });
           return null;
         }
         if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -172,34 +199,59 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
         try {
           json(res, 200, await run(client, body));
         } catch (error) {
+          if (error instanceof BadRequest) return json(res, 400, { error: error.message, issues: error.issues });
           if (error instanceof GenerationError) return json(res, 422, { error: error.message, repairs: error.repairs, lastAnswer: error.lastAnswer.slice(0, 4000) });
           json(res, 502, { error: error instanceof Error ? error.message : String(error) });
         }
       };
+      /** Hints only for images this server holds; mime comes from the server, the description from the client, trimmed. */
+      const hintsFrom = (raw: unknown, fallback: (hash: string) => string): AssetHint[] =>
+        (Array.isArray(raw) ? raw : []).flatMap((h: unknown) => {
+          if (typeof h !== 'object' || h === null) return [];
+          const { hash, description } = h as { hash?: unknown; description?: unknown };
+          const asset = typeof hash === 'string' ? assets.get(hash) : undefined;
+          if (!asset || typeof hash !== 'string') return [];
+          return [{ hash, mime: asset.mime, description: typeof description === 'string' && description.trim() ? description.trim().slice(0, 200) : fallback(hash) }];
+        });
       server.middlewares.use('/api/ai/template', safe((req, res) =>
         withAi(req, res, async (client, body) => {
-          const sampleData = (typeof body.sampleData === 'object' && body.sampleData !== null ? body.sampleData : undefined) as RenderData | undefined;
-          const hints = (Array.isArray(body.assets) ? body.assets : []) as AssetHint[];
-          const result = await generateTemplate({ client, prompt: String(body.prompt ?? ''), sampleData, locale: typeof body.locale === 'string' ? body.locale : undefined, assets: hints.filter((h) => assets.has(h.hash)) });
-          const data = sampleData && Object.keys(sampleData).length ? { data: sampleData, attempts: 0, unresolved: [] } : await suggestSampleData({ client, model: result.model });
-          return { model: result.model, sampleData: data.data, attempts: result.attempts, dataAttempts: data.attempts, unresolved: data.unresolved };
+          const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+          if (!prompt) throw new BadRequest('A prompt is required');
+          if (prompt.length > 8000) throw new BadRequest('The prompt is too long (8000 characters at most)');
+          const sampleData = (typeof body.sampleData === 'object' && body.sampleData !== null && !Array.isArray(body.sampleData) ? body.sampleData : undefined) as RenderData | undefined;
+          const hints = hintsFrom(body.assets, () => 'an uploaded image');
+          const result = await generateTemplate({ client, prompt, sampleData, locale: typeof body.locale === 'string' ? body.locale : undefined, assets: hints });
+          // The template already validated; a failure of the follow-up sample-data call must not lose it.
+          const data =
+            sampleData && Object.keys(sampleData).length
+              ? { data: sampleData, attempts: 0, unresolved: [] as string[], error: undefined as string | undefined }
+              : await suggestSampleData({ client, model: result.model })
+                  .then((d) => ({ ...d, error: undefined as string | undefined }))
+                  .catch((error: unknown) => ({ data: {} as RenderData, attempts: 0, unresolved: [] as string[], error: error instanceof Error ? error.message : String(error) }));
+          return { model: result.model, sampleData: data.data, attempts: result.attempts, dataAttempts: data.attempts, unresolved: data.unresolved, sampleDataError: data.error };
         }),
       ));
       server.middlewares.use('/api/ai/edit', safe((req, res) =>
         withAi(req, res, async (client, body) => {
           const current = validateModel(body.model);
-          if (!current.ok) throw new Error(`The current template is invalid: ${current.issues[0]?.message ?? ''}`);
-          const sampleData = (typeof body.sampleData === 'object' && body.sampleData !== null ? body.sampleData : undefined) as RenderData | undefined;
-          const known = [...assets].map(([hash, a]) => ({ hash, mime: a.mime, description: 'an image already in this template' }));
-          const result = await editTemplate({ client, model: current.model, instruction: String(body.instruction ?? ''), sampleData, assets: known });
+          if (!current.ok) throw new BadRequest('The current template is invalid', current.issues);
+          const instruction = typeof body.instruction === 'string' ? body.instruction.trim() : '';
+          if (!instruction) throw new BadRequest('An instruction is required');
+          const sampleData = (typeof body.sampleData === 'object' && body.sampleData !== null && !Array.isArray(body.sampleData) ? body.sampleData : undefined) as RenderData | undefined;
+          const inTemplate = new Set(current.model.assets.map((a) => a.hash));
+          const known: AssetHint[] = [
+            ...current.model.assets.filter((a) => assets.has(a.hash)).map((a) => ({ hash: a.hash, mime: assets.get(a.hash)!.mime, description: 'an image already in this template' })),
+            ...[...assets].filter(([hash]) => !inTemplate.has(hash)).map(([hash, a]) => ({ hash, mime: a.mime, description: 'an uploaded image not yet used in this template' })),
+          ];
+          const result = await editTemplate({ client, model: current.model, instruction, sampleData, assets: known });
           return { model: result.model, attempts: result.attempts };
         }),
       ));
       server.middlewares.use('/api/ai/sample', safe((req, res) =>
         withAi(req, res, async (client, body) => {
           const current = validateModel(body.model);
-          if (!current.ok) throw new Error(`The template is invalid: ${current.issues[0]?.message ?? ''}`);
-          return suggestSampleData({ client, model: current.model, hint: typeof body.hint === 'string' ? body.hint : undefined });
+          if (!current.ok) throw new BadRequest('The template is invalid', current.issues);
+          return suggestSampleData({ client, model: current.model, hint: typeof body.hint === 'string' ? body.hint.slice(0, 2000) : undefined });
         }),
       ));
       server.middlewares.use('/api/ai', safe((_req, res) => {
@@ -208,13 +260,8 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
       }));
       server.middlewares.use('/api/render', safe(async (req, res) => {
         if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });
-        let raw: unknown;
-        try {
-          raw = await readJson(req);
-        } catch {
-          return json(res, 400, { error: 'Body is not JSON' });
-        }
-        if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return json(res, 400, { error: 'Body must be a JSON object' });
+        const raw = await readObject(req, res);
+        if (!raw) return;
         const body = raw as { model?: unknown; data?: RenderData; theme?: string; themeOverrides?: ThemeOverrides; locale?: string };
         const validated = validateModel(body.model);
         if (!validated.ok) return json(res, 400, { issues: validated.issues });

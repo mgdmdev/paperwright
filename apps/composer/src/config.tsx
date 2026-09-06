@@ -123,7 +123,7 @@ export function createConfig(): ComposerConfig {
       footer: { type: 'slot', label: 'Footer (every page)', disallow: ['PageBreak'] },
       sampleData: { type: 'textarea', label: 'Sample data (JSON, for preview and the variable picker)' },
     },
-    defaultProps: { name: 'Untitled', locale: 'en-GB', theme: 'professional', pageSize: 'A4', pageWidth: 0, pageHeight: 0, orientation: 'portrait', marginTop: 56, marginRight: 48, marginBottom: 56, marginLeft: 48, header: [], footer: [], sampleData: '{}' },
+    defaultProps: { name: 'Untitled', locale: 'en-GB', theme: 'professional', pageSize: 'A4', pageWidth: 0, pageHeight: 0, orientation: 'portrait', marginTop: 56, marginRight: 48, marginBottom: 56, marginLeft: 48, header: [], footer: [], sampleData: '{}', assets: [] },
     render: ({ children, header: Header, footer: Footer, theme, pageSize, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, puck }) => {
       const t = (puck.metadata as CanvasMetadata | undefined)?.themes?.[theme];
       const sizes: Record<string, [number, number]> = { A4: [595.28, 841.89], Letter: [612, 792], Legal: [612, 1008] };

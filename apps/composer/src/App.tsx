@@ -47,6 +47,8 @@ export function App() {
   const assets = useAssets();
   const fileInput = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<number | undefined>(undefined);
+  /** The save that is waiting for the debounce, with the template it was scheduled for. */
+  const pending = useRef<{ c: Current; d: ComposerData } | null>(null);
   const latest = useRef<ComposerData | null>(null);
 
   useEffect(() => {
@@ -62,6 +64,10 @@ export function App() {
   }, []);
 
   const mount = (c: Current, model: DocumentModel, sampleData: unknown) => {
+    // A save still waiting for the previous template must not fire against this one.
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = undefined;
+    pending.current = null;
     setCurrent(c);
     setData(modelToData(model, sampleData));
     latest.current = null;
@@ -107,10 +113,14 @@ export function App() {
       setNotice(`Saved as your own copy of "${current.name}"`);
       return;
     }
+    pending.current = { c: current, d };
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      const saved = persist(current, d);
-      if (saved.name !== current.name) setCurrent({ ...current, name: saved.name });
+      const job = pending.current;
+      pending.current = null;
+      if (!job) return;
+      const saved = persist(job.c, job.d);
+      setCurrent((now) => (now && now.id === job.c.id && now.name !== saved.name ? { ...now, name: saved.name } : now));
     }, 800);
   };
 
@@ -152,6 +162,8 @@ export function App() {
 
   const remove = () => {
     if (!current || current.source !== 'mine') return;
+    window.clearTimeout(saveTimer.current);
+    pending.current = null;
     library.remove(current.id);
     setMine(library.list());
     const next = library.list()[0];

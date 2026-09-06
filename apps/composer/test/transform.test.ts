@@ -70,6 +70,18 @@ describe('model ↔ Puck data', () => {
     expect(resolveDocument({ model: back, data }).blocks).toEqual(resolveDocument({ model, data }).blocks);
   });
 
+  it('keeps an asset the template declares even when this server does not hold it', () => {
+    const model = migrateModel({
+      version: 1, id: 't', name: 'T', locale: 'en',
+      page: { size: 'A4', orientation: 'portrait', margins: { top: 40, right: 40, bottom: 40, left: 40 } },
+      assets: [{ hash: 'deadbeefdeadbeef', mime: 'image/png', width: 96, height: 32 }],
+      blocks: [{ id: 'logo', type: 'image', assetHash: 'deadbeefdeadbeef' }],
+    });
+    const back = dataToModel(modelToData(model, {}), [], 't');
+    expect(back.assets).toEqual([{ hash: 'deadbeefdeadbeef', mime: 'image/png', width: 96, height: 32 }]);
+    expect(validateModel(back).ok).toBe(true);
+  });
+
   it('gives a component placed without an id one, and keeps a template valid', () => {
     const data = modelToData(migrateModel({ version: 1, id: 't', name: 'T', locale: 'en', page: { size: 'A4', orientation: 'portrait', margins: { top: 40, right: 40, bottom: 40, left: 40 } }, assets: [], blocks: [] }), {});
     data.content = [{ type: 'Heading', props: { level: 2, text: 'New', align: 'left', keepWithNext: false } } as never];

@@ -29,14 +29,17 @@ function AssetPicker({ name, value, onChange, field, allowNone }: { name: string
     <FieldLabel label={field.label ?? name}>
       <div className="pw-asset-field">
         <select value={value ?? ''} onChange={(e) => onChange(e.currentTarget.value)}>
-          {allowNone ? <option value="">none</option> : null}
+          <option value="" disabled={!allowNone}>
+            {allowNone ? 'none' : 'pick an image…'}
+          </option>
+          {value && !assets.some((a) => a.hash === value) ? <option value={value}>{value} (not on this server)</option> : null}
           {assets.map((a) => (
             <option key={a.hash} value={a.hash}>
               {a.hash} ({a.mime === 'image/png' ? 'PNG' : 'JPEG'})
             </option>
           ))}
         </select>
-        {value ? <img className="pw-asset-thumb" src={`/api/assets/${value}`} alt="" /> : null}
+        {value && assets.some((a) => a.hash === value) ? <img className="pw-asset-thumb" src={`/api/assets/${value}`} alt="" /> : null}
         <button type="button" onClick={() => input.current?.click()} disabled={busy}>
           {busy ? 'Uploading…' : 'Upload image…'}
         </button>

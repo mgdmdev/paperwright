@@ -19,6 +19,14 @@ export function AiDialog({ open, onClose, current, onGenerated }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState<{ configured: boolean; client: string | null } | null>(null);
+  const inFlight = useRef<AbortController | null>(null);
+
+  const close = () => {
+    inFlight.current?.abort();
+    inFlight.current = null;
+    setBusy(false);
+    onClose();
+  };
 
   useEffect(() => {
     const el = ref.current;
@@ -28,17 +36,21 @@ export function AiDialog({ open, onClose, current, onGenerated }: Props) {
       fetch('/api/ai').then((r) => r.json()).then(setConfigured).catch(() => setConfigured({ configured: false, client: null }));
     }
     if (!open && el.open) el.close();
+    if (!open) inFlight.current?.abort();
   }, [open]);
 
   const run = async () => {
     if (!text.trim()) return;
     setBusy(true);
     setError(null);
+    const controller = new AbortController();
+    inFlight.current = controller;
     try {
       const res = mode === 'new'
-        ? await fetch('/api/ai/template', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: text }) })
-        : await fetch('/api/ai/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: current?.model, instruction: text, sampleData: current?.sampleData }) });
+        ? await fetch('/api/ai/template', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: text }), signal: controller.signal })
+        : await fetch('/api/ai/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: current?.model, instruction: text, sampleData: current?.sampleData }), signal: controller.signal });
       const body = (await res.json()) as { model?: DocumentModel; sampleData?: unknown; attempts?: number; error?: string; repairs?: unknown[] };
+      if (controller.signal.aborted) return;
       if (!res.ok || !body.model) {
         setError(body.error ? `${body.error}${body.repairs ? ` (after ${body.repairs.length} repair rounds)` : ''}` : `failed (${res.status})`);
         return;
@@ -47,14 +59,16 @@ export function AiDialog({ open, onClose, current, onGenerated }: Props) {
       setText('');
       onClose();
     } catch (e) {
+      if ((e as Error).name === 'AbortError' || controller.signal.aborted) return;
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      if (inFlight.current === controller) inFlight.current = null;
       setBusy(false);
     }
   };
 
   return (
-    <dialog ref={ref} className="pw-dialog" onClose={onClose}>
+    <dialog ref={ref} className="pw-dialog" onClose={close}>
       <div className="pw-dialog-head">
         <button type="button" className={mode === 'new' ? 'active' : ''} onClick={() => setMode('new')}>New from a description</button>
         <button type="button" className={mode === 'edit' ? 'active' : ''} onClick={() => setMode('edit')} disabled={!current}>Change this template</button>
@@ -72,7 +86,7 @@ export function AiDialog({ open, onClose, current, onGenerated }: Props) {
       {error ? <div className="pw-field-error">{error}</div> : null}
       <div className="pw-dialog-actions">
         <span className="pw-muted pw-small">{configured?.client ? `via ${configured.client}` : ''}</span>
-        <button type="button" onClick={onClose} disabled={busy}>Cancel</button>
+        <button type="button" onClick={close}>{busy ? 'Stop' : 'Cancel'}</button>
         <button type="button" className="primary" onClick={() => void run()} disabled={busy || !text.trim() || configured?.configured === false}>
           {busy ? 'Working…' : mode === 'new' ? 'Generate' : 'Apply'}
         </button>

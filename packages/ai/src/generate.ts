@@ -137,22 +137,36 @@ export async function suggestSampleData(options: SampleDataOptions): Promise<Sam
   const messages: Message[] = [
     { role: 'user', content: `Template:\n${JSON.stringify(model)}\n\nProduce data so that every {{ binding }}, dataTable rowBinding, repeat forEach and if test resolves to a value.${hint ? ` ${hint}` : ''}` },
   ];
+  // Every resolver warning counts: a missing value, a non-array fed to a table or repeat, a
+  // filter that failed on the value's shape. The path is what is reported; the full warning goes back.
+  const PATHS = [/^No value for "(.*)"$/, /^Block "[^"]*": "(.*)" is not an array$/, /^Filter failed for "(.*)":/];
+  const pathOf = (w: string) => PATHS.map((re) => re.exec(w)?.[1]).find((m): m is string => !!m) ?? w;
+  const check = (candidate: RenderData) => {
+    const { warnings } = resolveDocument({ model, data: candidate });
+    return { warnings, unresolved: [...new Set(warnings.map(pathOf))] };
+  };
   let data: RenderData = {};
-  let unresolved: string[] = [];
+  let unresolved = check(data).unresolved;
   for (let round = 1; round <= attempts; round++) {
-    const answer = await client.complete({ system: sys, messages, json: true, temperature: 0.4 });
+    const answer = await client.complete({ system: sys, messages, json: true });
+    let parsed: unknown;
     try {
-      data = extractJson(answer) as RenderData;
+      parsed = extractJson(answer);
     } catch (e) {
       messages.push({ role: 'assistant', content: answer }, { role: 'user', content: `That was not a JSON object (${e instanceof Error ? e.message : String(e)}). Answer with the JSON data only.` });
       continue;
     }
-    const { warnings } = resolveDocument({ model, data });
-    unresolved = warnings.filter((w) => w.startsWith('No value for')).map((w) => w.replace(/^No value for "(.*)"$/, '$1'));
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      messages.push({ role: 'assistant', content: answer }, { role: 'user', content: 'Answer with one JSON object whose keys are the data paths.' });
+      continue;
+    }
+    data = parsed as RenderData;
+    const result = check(data);
+    unresolved = result.unresolved;
     if (unresolved.length === 0) return { data, attempts: round, unresolved };
     messages.push(
       { role: 'assistant', content: answer },
-      { role: 'user', content: `These bindings still have no value; add them (keeping everything else) and return the whole data object:\n${unresolved.map((u) => `- ${u}`).join('\n')}` },
+      { role: 'user', content: `These bindings still do not resolve; fix them (keeping everything else) and return the whole data object:\n${result.warnings.map((w) => `- ${w}`).join('\n')}` },
     );
   }
   return { data, attempts, unresolved };
