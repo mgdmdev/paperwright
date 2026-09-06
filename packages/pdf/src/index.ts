@@ -8,7 +8,7 @@ export type { CompileContext, ThemeOverrides } from './render/compile';
 export { bundledFonts } from './fonts';
 export { pageGeometry, PT_TO_PX } from './render/page';
 
-// Component layer (vendored from pdfcn's Forme base, with paperwright's fixes)
+// Component layer (adapted from pdfcn's Forme base, with paperwright's changes)
 export * from './themes/index';
 export { PdfcnThemeContext, PdfcnThemeProvider, usePdfcnTheme, useSafeMemo, mergePdfStyles } from './components/theme-provider';
 export type { PdfcnThemeProviderProps } from './components/theme-provider';
