@@ -15,7 +15,8 @@
     "test": "pnpm build && vitest run",
     "test:only": "vitest run",
     "examples": "pnpm --filter @paperwright/example-basic render",
-    "playground": "pnpm --filter @paperwright/playground dev"
+    "playground": "pnpm --filter @paperwright/playground dev",
+    "composer": "pnpm --filter @paperwright/composer dev"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

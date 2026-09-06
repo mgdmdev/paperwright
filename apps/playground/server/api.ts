@@ -5,13 +5,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { validateModel } from '@paperwright/model';
 import type { RenderData } from '@paperwright/model';
-import { renderPdf } from '@paperwright/pdf';
+import { renderPdf, themePresets } from '@paperwright/pdf';
 import type { ThemeOverrides } from '@paperwright/pdf';
 
 /**
  * The playground's API, served by the Vite dev server itself so there is one process to run.
- * GET  /api/examples  → the example templates and data
- * POST /api/render    → { model, data, theme?, themeOverrides? } → application/pdf, or 400 with issues
+ * GET  /api/examples      → the example templates and data
+ * GET  /api/themes        → the built-in theme presets, for canvas previews
+ * GET  /api/assets/<hash> → an example image by content hash
+ * POST /api/render        → { model, data, theme?, themeOverrides? } → application/pdf, or 400 with issues
  * Assets are the example images, keyed by the same content hash the templates use.
  */
 export function playgroundApi(examplesDir: string): Plugin {
@@ -59,6 +61,16 @@ export function playgroundApi(examplesDir: string): Plugin {
           };
         }
         json(res, 200, { names, examples, assets: [...assets.keys()] });
+      });
+      server.middlewares.use('/api/themes', (_req, res) => json(res, 200, themePresets));
+      server.middlewares.use('/api/assets', (req, res) => {
+        const hash = (req.url ?? '').replace(/^\//, '').split('?')[0] ?? '';
+        const bytes = assets.get(hash);
+        if (!bytes) return json(res, 404, { error: `no asset ${hash}` });
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.end(Buffer.from(bytes));
       });
       server.middlewares.use('/api/render', async (req, res) => {
         if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });
