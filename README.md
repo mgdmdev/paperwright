@@ -18,8 +18,9 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 |---|---|
 | [`@paperwright/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver. No React, no engine. |
 | [`@paperwright/pdf`](packages/pdf) | Renders a model to PDF through Forme, with a component layer adapted from [pdfcn](https://github.com/shadcn-labs/pdfcn), two themes and the Inter font. |
+| [`@paperwright/ai`](packages/ai) | Prompt to template, sample data and edit-by-instruction through any language model, with a validate-and-repair loop. Keys stay with the host. |
 | [`examples/basic`](examples/basic) | Four JSON templates (invoice, letter, payslip, certificate) with data, rendered by `pnpm examples`. |
-| [`apps/composer`](apps/composer) | The drag-and-drop template composer (v0.2 spike on Puck): blocks palette, page canvas with bindings shown as chips, property panels, variable picker, live PDF panel. `pnpm composer`. |
+| [`apps/composer`](apps/composer) | The drag-and-drop template composer (v0.2 on Puck): blocks palette, page canvas with bindings shown as chips, property panels, variable picker, live PDF panel, your own templates and images, and an AI dialog. `pnpm composer`. |
 | [`apps/playground`](apps/playground) | A local page to try templates as JSON: edit the template and data, see the PDF re-render as you type. `pnpm playground`. |
 
 ## Development
@@ -30,6 +31,9 @@ pnpm build        # both packages, in dependency order (tsup, with declarations)
 pnpm test         # builds, then vitest across packages
 pnpm examples     # renders the four example templates into examples/basic/out
 pnpm composer     # http://localhost:5181 — drag-and-drop composer with a live PDF panel
+# For the composer's AI dialog, give the dev server a language model:
+#   PAPERWRIGHT_AI_PROVIDER=gemini PAPERWRIGHT_AI_KEY=… PAPERWRIGHT_AI_MODEL=gemini-flash-latest pnpm composer
+#   PAPERWRIGHT_AI_PROVIDER=openai PAPERWRIGHT_AI_KEY=… PAPERWRIGHT_AI_MODEL=gpt-4o-mini [PAPERWRIGHT_AI_BASE_URL=…] pnpm composer
 pnpm playground   # http://localhost:5180 — edit template and data JSON, live PDF preview
 pnpm typecheck
 ```

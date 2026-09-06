@@ -41,6 +41,9 @@ importers:
 
   apps/composer:
     dependencies:
+      '@paperwright/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@paperwright/model':
         specifier: workspace:*
         version: link:../../packages/model
@@ -78,6 +81,9 @@ importers:
 
   apps/playground:
     dependencies:
+      '@paperwright/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@paperwright/model':
         specifier: workspace:*
         version: link:../../packages/model
@@ -118,6 +124,15 @@ importers:
       '@paperwright/pdf':
         specifier: workspace:*
         version: link:../../packages/pdf
+
+  packages/ai:
+    dependencies:
+      '@paperwright/model':
+        specifier: workspace:*
+        version: link:../model
+      zod:
+        specifier: 4.5.4
+        version: 4.5.4
 
   packages/model:
     dependencies:

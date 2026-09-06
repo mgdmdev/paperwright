@@ -3,6 +3,7 @@ import type { Plugin } from '@puckeditor/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { migrateModel } from '@paperwright/model';
 import type { DocumentModel } from '@paperwright/model';
+import { AiDialog } from './AiDialog';
 import { assetStore, useAssets } from './assets';
 import { createConfig } from './config';
 import type { CanvasMetadata } from './config';
@@ -42,6 +43,7 @@ export function App() {
   const [mine, setMine] = useState<LibraryEntry[]>(() => library.list());
   const [key, setKey] = useState(0);
   const [notice, setNotice] = useState('');
+  const [aiOpen, setAiOpen] = useState(false);
   const assets = useAssets();
   const fileInput = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<number | undefined>(undefined);
@@ -157,6 +159,27 @@ export function App() {
     else if (examples) openExample(examples, examples.names[0]!);
   };
 
+  /** A generated or rewritten template lands in the library as its own entry. */
+  const adopt = (model: DocumentModel, sampleData: unknown, note: string) => {
+    const id = library.newId();
+    library.save({ id, name: model.name, model: { ...model, id }, sampleData: sampleData ?? {} });
+    setMine(library.list());
+    mount({ id, name: model.name, source: 'mine' }, { ...model, id }, sampleData ?? {});
+    setNotice(note);
+  };
+
+  const currentForAi = () => {
+    const d = latest.current ?? data;
+    if (!d || !current) return null;
+    let sampleData: unknown = {};
+    try {
+      sampleData = JSON.parse(String(d.root.props?.sampleData || '{}'));
+    } catch {
+      sampleData = {};
+    }
+    return { model: dataToModel(d, assetStore.get(), current.id), sampleData };
+  };
+
   const hashes = useMemo(() => assets.map((a) => a.hash), [assets]);
   const metadata = useMemo<CanvasMetadata>(() => ({ themes: themes ?? {}, assets: hashes }), [themes, hashes]);
   const config = useMemo(() => createConfig(), []);
@@ -173,6 +196,8 @@ export function App() {
   if (!data || !examples || !themes || !current) return <div className="pw-loading">Loading…</div>;
 
   return (
+    <>
+    <AiDialog open={aiOpen} onClose={() => setAiOpen(false)} current={currentForAi()} onGenerated={adopt} />
     <Puck
       key={key}
       config={config}
@@ -218,6 +243,7 @@ export function App() {
               <button type="button" onClick={newBlank}>New</button>
               <button type="button" onClick={() => fileInput.current?.click()}>Open…</button>
               <button type="button" onClick={duplicate}>Duplicate</button>
+              <button type="button" onClick={() => setAiOpen(true)}>AI…</button>
               {current.source === 'mine' ? (
                 <button type="button" className="pw-danger" onClick={remove}>Delete</button>
               ) : null}
@@ -229,5 +255,6 @@ export function App() {
         ),
       }}
     />
+    </>
   );
 }

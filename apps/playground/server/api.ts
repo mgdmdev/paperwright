@@ -7,6 +7,8 @@ import { validateModel } from '@paperwright/model';
 import type { RenderData } from '@paperwright/model';
 import { renderPdf, themePresets } from '@paperwright/pdf';
 import type { ThemeOverrides } from '@paperwright/pdf';
+import { editTemplate, gemini, generateTemplate, openAiCompatible, suggestSampleData, GenerationError } from '@paperwright/ai';
+import type { AssetHint, LlmClient } from '@paperwright/ai';
 
 /**
  * The playground's API, served by the Vite dev server itself so there is one process to run.
@@ -16,6 +18,12 @@ import type { ThemeOverrides } from '@paperwright/pdf';
  * POST /api/assets        → { name, mime, base64 } → { hash, mime }; stored under uploadsDir
  * POST /api/render        → { model, data, theme?, themeOverrides?, locale? }
  *                           → { pdf: base64, warnings, renderMs }, or 400 { issues } / { error }
+ * GET  /api/ai            → { configured, client }
+ * POST /api/ai/template   → { prompt, sampleData?, locale?, assets? } → { model, sampleData, attempts }
+ * POST /api/ai/edit       → { model, instruction, sampleData? } → { model, attempts }
+ * POST /api/ai/sample     → { model, hint? } → { data, attempts, unresolved }
+ * The language model comes from the environment: PAPERWRIGHT_AI_PROVIDER (gemini | openai),
+ * PAPERWRIGHT_AI_KEY, PAPERWRIGHT_AI_MODEL, PAPERWRIGHT_AI_BASE_URL.
  * Assets are the example images plus uploads, keyed by the content hash the templates use.
  */
 export type AssetMime = 'image/png' | 'image/jpeg';
@@ -30,6 +38,16 @@ const sniffMime = (bytes: Uint8Array): AssetMime | null => {
 };
 
 const MAX_UPLOAD = 5 * 1024 * 1024;
+
+const aiClient = (): LlmClient | null => {
+  const provider = process.env.PAPERWRIGHT_AI_PROVIDER;
+  const apiKey = process.env.PAPERWRIGHT_AI_KEY;
+  const model = process.env.PAPERWRIGHT_AI_MODEL;
+  if (!provider || !apiKey) return null;
+  if (provider === 'gemini') return gemini({ apiKey, model: model || undefined });
+  if (provider === 'openai') return openAiCompatible({ apiKey, model: model || 'gpt-4o-mini', baseUrl: process.env.PAPERWRIGHT_AI_BASE_URL || undefined });
+  return null;
+};
 
 export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
   const assets = new Map<string, { bytes: Uint8Array; mime: AssetMime }>();
@@ -130,6 +148,63 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
         res.setHeader('Content-Type', asset.mime);
         res.setHeader('Cache-Control', 'public, max-age=3600');
         res.end(Buffer.from(asset.bytes));
+      }));
+      const readObject = async (req: IncomingMessage, res: ServerResponse): Promise<Record<string, unknown> | null> => {
+        let raw: unknown;
+        try {
+          raw = await readJson(req);
+        } catch {
+          json(res, 400, { error: 'Body is not JSON' });
+          return null;
+        }
+        if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+          json(res, 400, { error: 'Body must be a JSON object' });
+          return null;
+        }
+        return raw as Record<string, unknown>;
+      };
+      const withAi = async (req: IncomingMessage, res: ServerResponse, run: (client: LlmClient, body: Record<string, unknown>) => Promise<unknown>) => {
+        if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });
+        const client = aiClient();
+        if (!client) return json(res, 503, { error: 'No language model configured: set PAPERWRIGHT_AI_PROVIDER, PAPERWRIGHT_AI_KEY and PAPERWRIGHT_AI_MODEL' });
+        const body = await readObject(req, res);
+        if (!body) return;
+        try {
+          json(res, 200, await run(client, body));
+        } catch (error) {
+          if (error instanceof GenerationError) return json(res, 422, { error: error.message, repairs: error.repairs, lastAnswer: error.lastAnswer.slice(0, 4000) });
+          json(res, 502, { error: error instanceof Error ? error.message : String(error) });
+        }
+      };
+      server.middlewares.use('/api/ai/template', safe((req, res) =>
+        withAi(req, res, async (client, body) => {
+          const sampleData = (typeof body.sampleData === 'object' && body.sampleData !== null ? body.sampleData : undefined) as RenderData | undefined;
+          const hints = (Array.isArray(body.assets) ? body.assets : []) as AssetHint[];
+          const result = await generateTemplate({ client, prompt: String(body.prompt ?? ''), sampleData, locale: typeof body.locale === 'string' ? body.locale : undefined, assets: hints.filter((h) => assets.has(h.hash)) });
+          const data = sampleData && Object.keys(sampleData).length ? { data: sampleData, attempts: 0, unresolved: [] } : await suggestSampleData({ client, model: result.model });
+          return { model: result.model, sampleData: data.data, attempts: result.attempts, dataAttempts: data.attempts, unresolved: data.unresolved };
+        }),
+      ));
+      server.middlewares.use('/api/ai/edit', safe((req, res) =>
+        withAi(req, res, async (client, body) => {
+          const current = validateModel(body.model);
+          if (!current.ok) throw new Error(`The current template is invalid: ${current.issues[0]?.message ?? ''}`);
+          const sampleData = (typeof body.sampleData === 'object' && body.sampleData !== null ? body.sampleData : undefined) as RenderData | undefined;
+          const known = [...assets].map(([hash, a]) => ({ hash, mime: a.mime, description: 'an image already in this template' }));
+          const result = await editTemplate({ client, model: current.model, instruction: String(body.instruction ?? ''), sampleData, assets: known });
+          return { model: result.model, attempts: result.attempts };
+        }),
+      ));
+      server.middlewares.use('/api/ai/sample', safe((req, res) =>
+        withAi(req, res, async (client, body) => {
+          const current = validateModel(body.model);
+          if (!current.ok) throw new Error(`The template is invalid: ${current.issues[0]?.message ?? ''}`);
+          return suggestSampleData({ client, model: current.model, hint: typeof body.hint === 'string' ? body.hint : undefined });
+        }),
+      ));
+      server.middlewares.use('/api/ai', safe((_req, res) => {
+        const client = aiClient();
+        json(res, 200, { configured: !!client, client: client?.name ?? null });
       }));
       server.middlewares.use('/api/render', safe(async (req, res) => {
         if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });

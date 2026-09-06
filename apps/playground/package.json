@@ -12,7 +12,8 @@
     "@paperwright/pdf": "workspace:*",
     "pdfjs-dist": "^6.3.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "@paperwright/ai": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

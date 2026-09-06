@@ -1,0 +1,32 @@
+{
+  "name": "@paperwright/ai",
+  "version": "0.1.0",
+  "description": "Prompt to template, sample data and edit-by-instruction for paperwright documents, through any LLM",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@paperwright/model": "workspace:*",
+    "zod": "4.5.4"
+  },
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "git+https://github.com/mgdmdev/paperwright.git", "directory": "packages/ai" },
+  "homepage": "https://github.com/mgdmdev/paperwright/tree/main/packages/ai#readme",
+  "bugs": "https://github.com/mgdmdev/paperwright/issues",
+  "keywords": ["pdf", "document", "template", "llm", "ai"]
+}

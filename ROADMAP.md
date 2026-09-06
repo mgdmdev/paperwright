@@ -25,9 +25,11 @@ step under `version`, never a silent cut. The empty migration list is the seat f
 A drag-and-drop editor over the model. The model is the source of truth and the builder is a
 view of it; nothing the builder can express is outside the schema.
 
-- Spike Puck as the canvas (two weeks), dnd-kit as the fallback.
-- Variable picker fed by `listBindings(model)` and a data sample from the host.
-- Live preview: render in a worker with Forme's browser build and show pages with pdf.js.
+- Done: Puck as the canvas (`apps/composer`), blocks palette, property panels, variable picker
+  with loop-relative paths, live PDF panel, your own templates with a browser-side library,
+  image upload, and the AI dialog below.
+- Live preview in the browser itself (Forme's browser build in a worker) instead of the dev API.
+- A storage adapter so a host keeps templates in its own database rather than the browser.
 - Template gallery: convert pdfcn's ten invoice and report designs into JSON templates, which is
   also where "starter templates" for a marketplace come from.
 - First consumer cutover: the certificate above replaces PRISM's LMS certificate, then the
@@ -38,14 +40,14 @@ view of it; nothing the builder can express is outside the schema.
 The model is a strict, small schema, which is what makes this tractable. The plan is
 provider-neutral: an interface the host implements with its own model and keys.
 
-- **Prompt to template.** `z.toJSONSchema(documentModelSchema)` is the structured-output contract.
-  The model emits a template, `validateModel` checks it, and the issues (with paths) go back for
-  a repair round; two rounds cover almost everything. Output is always a template the builder can
-  open, never a one-off PDF.
-- **Sample data for the preview.** From `listBindings` plus the prompt, synthesise a data object
-  so a generated template renders immediately, and the host can replace it with real data.
-- **Edit by instruction.** In the builder, "move the totals under the table and make the invoice
-  number red" becomes a diff of blocks, applied through the same validation.
+- **Prompt to template** (done, `@paperwright/ai`). `z.toJSONSchema(documentModelSchema)` plus a
+  short authoring guide are the system prompt; the answer is validated and the issues go back with
+  their paths for up to three repair rounds. Output is always a template the builder can open.
+- **Sample data for the preview** (done). Synthesised from the template and checked with the real
+  resolver; bindings still empty go back for another round.
+- **Edit by instruction** (done, whole-template rewrite). "Move the totals under the table and make
+  the invoice number red" returns the full template with untouched ids kept. A block-level diff, so
+  the canvas can show what changed, is the next step.
 - **Binding suggestions.** Match a template's bindings against the keys of a data sample (exact,
   then fuzzy) to wire up a template pasted from elsewhere, or to flag bindings the data will
   never satisfy before a render is attempted.

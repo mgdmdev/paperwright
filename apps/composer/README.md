@@ -18,11 +18,18 @@ pnpm composer   # http://localhost:5181
   footer bands, and the sample data used by the preview and the picker.
 - **PDF** (left rail): the real render of the current canvas, re-done after edits settle, with
   validation issues and renderer warnings.
-- **Publish**: downloads the template as JSON. Templates load from `examples/basic`.
+- **Templates**: the dropdown lists your templates and the examples. New starts a blank one, Open… loads a
+  JSON file, Duplicate copies, Delete removes. The first edit to an example forks it into your library
+  (kept in the browser); edits to your own save as you go. Publish downloads the JSON.
+- **Images**: image and signature fields pick from known images or upload a PNG or JPEG; uploads are
+  kept under `.paperwright/assets` and referenced by content hash.
+- **AI…**: describe a document and get a template, or describe a change to the current one. Needs a
+  language model on the dev server (see the root README); everything it returns is validated, and
+  invalid answers go back for repair before you see them.
 
 The model stays the source of truth: `src/transform.ts` maps blocks to Puck components and back,
 block ids survive the round trip, and the preview validates the model before rendering. The
 render API is the playground's dev server plugin, shared by both apps.
 
-Known limits of the spike: assets are the example images only (no upload yet); list items are
-plain text in the editor; the canvas approximates the PDF's layout rather than reproducing it.
+Known limits: the library lives in the browser's storage; the canvas approximates the PDF's layout
+rather than reproducing pagination.
