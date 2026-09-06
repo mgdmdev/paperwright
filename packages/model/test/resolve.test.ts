@@ -88,6 +88,22 @@ describe('resolveDocument', () => {
     expect(doc.warnings).toEqual([]);
   });
 
+  it('warns and degrades instead of throwing when a filter or locale fails at render', () => {
+    const doc = resolveDocument({
+      model: { ...invoiceModel, locale: 'en US', blocks: [
+        { id: 'a', type: 'text', rich: { spans: [{ text: { var: 'invoice.subtotal', filters: [{ name: 'currency', args: { code: 'GH' } }] } }] } },
+      ] },
+      data: { company: { name: 'Acme' }, invoice: { subtotal: 5 } },
+      locale: 'nope!',
+    });
+    expect(doc.warnings).toEqual([
+      'Locale "nope!" is not valid; using the template\'s',
+      'Locale "en US" is not valid; using en',
+      expect.stringMatching(/^Filter failed for "invoice.subtotal": /),
+    ]);
+    expect(doc.blocks[0]).toMatchObject({ rich: { spans: [{ text: '5' }] } });
+  });
+
   it('honours a render-time locale override', () => {
     const fr = resolveDocument({ model: invoiceModel, data: invoiceData, locale: 'fr-FR' });
     const meta = fr.blocks[1];

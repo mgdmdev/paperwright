@@ -26,8 +26,41 @@ export function parseBindingExpression(expression: string): Binding {
   const [head, ...steps] = splitUnquoted(expression, '|');
   const filters = steps.map(parseFilter).filter((f): f is Filter => f !== null);
   const binding: Binding = { var: (head ?? '').trim() };
+  if (!binding.var) throw new Error(`Empty binding in "{{ ${expression.trim()} }}"`);
   if (filters.length > 0) binding.filters = filters;
   return binding;
+}
+
+const DATE_STYLES = new Set(['short', 'medium', 'long', 'full', 'iso', 'time', 'datetime', 'month']);
+const CURRENCY_DISPLAYS = new Set(['symbol', 'narrowSymbol', 'code', 'name']);
+
+const isDigits = (v: string, max: number) => /^\d{1,3}$/.test(v) && Number(v) <= max;
+
+/**
+ * Checks a filter's arguments before they reach Intl, which throws on a bad currency code or
+ * fraction-digit range. Used by the parser and by the schema so both binding forms agree.
+ * Returns the problem, or null when the filter is sound.
+ */
+export function filterProblem(filter: Filter): string | null {
+  const args = filter.args ?? {};
+  switch (filter.name) {
+    case 'currency': {
+      if (args.code !== undefined && !/^[A-Za-z]{3}$/.test(args.code)) return `currency code "${args.code}" must be three letters`;
+      if (args.display !== undefined && !CURRENCY_DISPLAYS.has(args.display)) return `currency display "${args.display}" is not one of ${[...CURRENCY_DISPLAYS].join(', ')}`;
+      return null;
+    }
+    case 'number': {
+      if (args.min !== undefined && !isDigits(args.min, 100)) return `number digits "${args.min}" must be a whole number from 0 to 100`;
+      if (args.max !== undefined && !isDigits(args.max, 100)) return `number digits "${args.max}" must be a whole number from 0 to 100`;
+      if (args.min !== undefined && args.max !== undefined && Number(args.max) < Number(args.min)) return 'number maximum digits must not be below the minimum';
+      return null;
+    }
+    case 'date':
+      if (args.style !== undefined && !DATE_STYLES.has(args.style)) return `date style "${args.style}" is not one of ${[...DATE_STYLES].join(', ')}`;
+      return null;
+    default:
+      return null;
+  }
 }
 
 const FILTER_NAMES = new Set<Filter['name']>(['date', 'number', 'currency', 'upper', 'lower', 'default', 'join']);
@@ -40,9 +73,11 @@ function parseFilter(step: string): Filter | null {
   if (!FILTER_NAMES.has(name as Filter['name'])) {
     throw new Error(`Unknown filter "${name}" in "{{ ${step.trim()} }}"`);
   }
-  if (colon === -1) return { name: name as Filter['name'] };
-  const args = splitUnquoted(trimmed.slice(colon + 1), ',').map(unquote);
-  return { name: name as Filter['name'], args: positionalArgs(name as Filter['name'], args) };
+  const filter: Filter = { name: name as Filter['name'] };
+  if (colon !== -1) filter.args = positionalArgs(filter.name, splitUnquoted(trimmed.slice(colon + 1), ',').map(unquote));
+  const problem = filterProblem(filter);
+  if (problem) throw new Error(`${problem} in "{{ ${step.trim()} }}"`);
+  return filter;
 }
 
 /** Each filter names its positional arguments so the object form and the string form line up. */

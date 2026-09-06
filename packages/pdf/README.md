@@ -13,7 +13,8 @@ hands it to the engine. Options: `fonts` (defaults to the bundled Inter faces; N
 your own in a browser), `fontFamily` (every theme typography slot is pointed at it; `null` keeps
 the theme's own families, which you must then register), `theme` (a preset name or a theme
 object, winning over the model's), `themeOverrides` (a deep partial applied last: a tenant's
-colours, a font family, spacing), `metadata`, `pdfA`, `engine`.
+colours, a font family, spacing between blocks; page size and margins stay with the model),
+`metadata`, `pdfA`, `engine`.
 
 ```ts
 await renderPdf(input, { themeOverrides: { colors: { primary: '#7a1f1f' }, typography: { heading: { fontFamily: 'Brand Serif' } } }, fonts });
@@ -48,5 +49,5 @@ upstream:
 
 ## Tests
 
-`pnpm test` renders the three example templates and compares the text layer per page, read back
+`pnpm test` renders the four example templates (invoice, letter, payslip, certificate) and compares the text layer per page, read back
 through pdf.js, against golden snapshots in `test/__snapshots__`.

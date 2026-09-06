@@ -14,7 +14,8 @@
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
     "test": "pnpm build && vitest run",
     "test:only": "vitest run",
-    "examples": "pnpm --filter @paperwright/example-basic render"
+    "examples": "pnpm --filter @paperwright/example-basic render",
+    "playground": "pnpm --filter @paperwright/playground dev"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

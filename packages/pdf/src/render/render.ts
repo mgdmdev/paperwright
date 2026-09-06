@@ -23,7 +23,7 @@ export interface RenderPdfOptions {
   theme?: string | PdfcnTheme;
   /** Deep overrides applied last: a tenant's colours, a font family, spacing. */
   themeOverrides?: ThemeOverrides;
-  metadata?: { title?: string; author?: string; subject?: string; creator?: string; creationDate?: string };
+  metadata?: { title?: string; author?: string; subject?: string; creator?: string };
   pdfA?: boolean;
 }
 
@@ -61,10 +61,11 @@ export async function renderPdf(input: RenderInput, options: RenderPdfOptions = 
     srcByHash.set(asset.hash, engine.imageSrc(image));
   }
 
-  const ctx: CompileContext = { theme, assetSrc: (hash) => srcByHash.get(hash), warnings };
+  const ctx: CompileContext = { theme, assetSrc: (hash) => srcByHash.get(hash), flow: true, warnings };
+  const band: CompileContext = { ...ctx, flow: false };
   const body = withTheme(ctx, compileBlocks(resolved.blocks, ctx));
-  const header = resolved.header?.length ? withTheme(ctx, compileBlocks(resolved.header, ctx)) : undefined;
-  const footer = resolved.footer?.length ? withTheme(ctx, compileBlocks(resolved.footer, ctx)) : undefined;
+  const header = resolved.header?.length ? withTheme(ctx, compileBlocks(resolved.header, band)) : undefined;
+  const footer = resolved.footer?.length ? withTheme(ctx, compileBlocks(resolved.footer, band)) : undefined;
 
   const families = [...new Set(fonts.map((f) => f.family))];
   const bytes = await engine.render({

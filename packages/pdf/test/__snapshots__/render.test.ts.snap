@@ -2,6 +2,9 @@
 
 exports[`renderPdf > renders the certificate example without warnings and matches its golden text 1`] = `
 {
+  "links": [
+    "https://verify.northwind.example/c/NWA-2026-01187",
+  ],
   "pages": 1,
   "text": [
     "Certificate of Completion | This is to certify that | Abena Osei | has successfully completed | Workplace Health and Safety | (12 hours of instruction) on 30 August 2026. | Final assessment: 92% | Signature | A. Owusu | Managing Director | Signature | Dr K. Asante | Head of Training | 30 Aug 2026 | Verify this certificate at https://verify.northwind.example/c/NWA-2026-01187 | Certificate number NWA-2026-01187, issued 1 September 2026. | Northwind Academy · 12 Harbour Lane, Tema · Certificate NWA-2026-01187",
@@ -12,6 +15,7 @@ exports[`renderPdf > renders the certificate example without warnings and matche
 
 exports[`renderPdf > renders the invoice example without warnings and matches its golden text 1`] = `
 {
+  "links": [],
   "pages": 2,
   "text": [
     "Invoice INV-2026-0142 | Northwind Studio | · 12 Harbour Lane, Tema · billing@northwind.example | Bill to | Blue Meridian Ltd | Issued | 1 September 2026 | Due | 1 October 2026 | Purchase order | none | # | Description | Qty | Unit price | Amount | 1 | Brand identity system | 1 | GHS 9,500.00 | GHS 9,500.00 | 2 | Website design, 6 templates | 6 | GHS 1,100.00 | GHS 6,600.00 | 3 | Photography day rate | 2 | GHS 820.00 | GHS 1,640.00 | 4 | Print production supervision | 1 | GHS 500.00 | GHS 500.00 | Subtotal | GHS 18,240.00 | VAT (15.0%) | GHS 2,736.00 | Total due | GHS 20,976.00 | Notes | Thank you for your business. Late payments accrue 2% per month. | Payment | Bank: | First Atlantic Bank | Account: 0012 3456 7890 | Reference: INV-2026-0142 | Page 1 of 2",
@@ -23,6 +27,7 @@ exports[`renderPdf > renders the invoice example without warnings and matches it
 
 exports[`renderPdf > renders the letter example without warnings and matches its golden text 1`] = `
 {
+  "links": [],
   "pages": 1,
   "text": [
     "4 September 2026 | Ms Efua Danso | Blue Meridian Ltd, 4 Ridge Road, Accra | Renewal of the design retainer for 2027 | Dear Ms Danso, | Thank you for another year of working together. Over the past twelve months we delivered | the brand identity system, six website templates and the print collateral for the Ridge Road | launch. | We propose renewing the retainer on the same terms for 2027, with one change: the monthly | review moves to the first Tuesday so it no longer collides with your board cycle. | The attached schedule sets out the scope and the fee. Please sign and return one copy by | 30 September so we can hold the team's availability. | Yours sincerely, | Signature | A. Owusu | Managing Director | cc: K. Mensah, Finance; Legal | Northwind Studio · 12 Harbour Lane, Tema",
@@ -33,6 +38,7 @@ exports[`renderPdf > renders the letter example without warnings and matches its
 
 exports[`renderPdf > renders the payslip example without warnings and matches its golden text 1`] = `
 {
+  "links": [],
   "pages": 2,
   "text": [
     "FINAL | Payslip · August 2026 | Employee | Kwame Boateng | Staff number | NW-0087 | Department | Design | Paid on | 28 August 2026 | Earnings | Item | Amount | Basic salary | GHS 6,200.00 | Transport allowance | GHS 450.00 | Overtime, 6 h | GHS 312.50 | Deductions | Item | Amount | Income tax (PAYE) | GHS 1,184.60 | SSNIT tier 1 (5.5%) | GHS 341.00 | Pension tier 2 (5%) | GHS 310.00 | Gross pay | GHS 6,962.50 | Total deductions | GHS 1,835.60 | Net pay | GHS 5,126.90 | YEAR TO DATE | Gross | GHS 55,700.00 | Tax | GHS 9,476.80 | Confidential · generated 5 Sept 2026",

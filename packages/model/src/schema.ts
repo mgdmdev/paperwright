@@ -1,17 +1,21 @@
 import { z } from 'zod';
-import { parseTemplate } from './bindings';
+import { filterProblem, parseTemplate } from './bindings';
+import { canonicalLocale } from './resolve';
 import type { Block, DocumentModel } from './types';
+
+const filterSchema = z
+  .object({
+    name: z.enum(['date', 'number', 'currency', 'upper', 'lower', 'default', 'join']),
+    args: z.record(z.string(), z.string()).optional(),
+  })
+  .superRefine((filter, ctx) => {
+    const problem = filterProblem(filter);
+    if (problem) ctx.addIssue({ code: 'custom', message: problem });
+  });
 
 const bindingSchema = z.object({
   var: z.string().min(1),
-  filters: z
-    .array(
-      z.object({
-        name: z.enum(['date', 'number', 'currency', 'upper', 'lower', 'default', 'join']),
-        args: z.record(z.string(), z.string()).optional(),
-      }),
-    )
-    .optional(),
+  filters: z.array(filterSchema).optional(),
 });
 
 /** A literal string may carry inline bindings; they are parsed here so an unknown filter fails validation, not the render. */
@@ -26,9 +30,16 @@ const templateString = z.string().superRefine((value, ctx) => {
 
 const bindingOrString = z.union([templateString, bindingSchema]);
 
-/** Declared widths are fractions of the table; more than the whole table cannot be laid out. */
-const widthsFit = (columns: { width?: number }[]) => columns.reduce((sum, c) => sum + (c.width ?? 0), 0) <= 1.0001;
-const WIDTHS_MESSAGE = 'Column widths add up to more than 1';
+/**
+ * Declared widths are fractions of the row; they cannot exceed it, and when some columns have no
+ * width they must leave room for them.
+ */
+const widthsFit = (columns: { width?: number }[]) => {
+  const declared = columns.reduce((sum, c) => sum + (c.width ?? 0), 0);
+  const open = columns.some((c) => c.width === undefined);
+  return open ? declared < 1 - 0.0001 : declared <= 1.0001;
+};
+const WIDTHS_MESSAGE = 'Column widths add up to the whole row or more';
 
 const spanSchema = z.object({
   text: bindingOrString,
@@ -65,7 +76,9 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({ ...base, type: z.literal('qrcode'), value: bindingOrString, size: z.number().positive().optional(), align: align.optional() }),
     z.object({ ...base, type: z.literal('keyValue'), items: z.array(z.object({ key: bindingOrString, value: bindingOrString })) }),
     z.object({ ...base, type: z.literal('list'), variant: z.enum(['bullet', 'numbered']), items: z.array(richTextSchema) }),
-    z.object({ ...base, type: z.literal('table'), columns: z.array(tableColumn).min(1).refine(widthsFit, WIDTHS_MESSAGE), rows: z.array(z.array(bindingOrString)), variant: tableVariant.optional() }),
+    z
+      .object({ ...base, type: z.literal('table'), columns: z.array(tableColumn).min(1).refine(widthsFit, WIDTHS_MESSAGE), rows: z.array(z.array(bindingOrString)), variant: tableVariant.optional() })
+      .refine((b) => b.rows.every((r) => r.length === b.columns.length), { message: 'Each row must have one cell per column', path: ['rows'] }),
     z.object({ ...base, type: z.literal('dataTable'), columns: z.array(tableColumn.extend({ cell: bindingOrString })).min(1).refine(widthsFit, WIDTHS_MESSAGE), rowBinding: z.string().min(1), variant: tableVariant.optional(), emptyText: bindingOrString.optional() }),
     z.object({ ...base, type: z.literal('section'), title: bindingOrString.optional(), blocks: z.array(blockSchema) }),
     z.object({ ...base, type: z.literal('repeat'), forEach: z.string().min(1), as: z.string().min(1), blocks: z.array(blockSchema) }),
@@ -96,7 +109,7 @@ export const documentModelSchema: z.ZodType<DocumentModel> = z.object({
   version: z.literal(1),
   id: z.string().min(1),
   name: z.string().min(1),
-  locale: z.string().min(2),
+  locale: z.string().refine((l) => canonicalLocale(l) !== undefined, 'Not a valid BCP 47 locale'),
   page: pageSetupSchema,
   theme: z.string().optional(),
   header: z.array(blockSchema).optional(),
@@ -125,27 +138,33 @@ export function validateModel(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
   const assets = new Set(model.assets.map((a) => a.hash));
   const ids = new Set<string>();
-  const walk = (blocks: Block[], path: string) => {
+  // `flow` is false inside a header or footer band, a keepTogether group and a column, where a
+  // page break cannot mean anything and the engine would drop or split content around it.
+  const walk = (blocks: Block[], path: string, flow: boolean) => {
     blocks.forEach((block, i) => {
       const here = `${path}.${i}`;
       if (ids.has(block.id)) issues.push({ path: `${here}.id`, message: `Duplicate block id "${block.id}"` });
       ids.add(block.id);
+      if (block.type === 'pageBreak' && !flow) {
+        issues.push({ path: here, message: 'pageBreak cannot sit inside columns, keepTogether, header or footer' });
+      }
       if (block.type === 'image' && !assets.has(block.assetHash)) {
         issues.push({ path: `${here}.assetHash`, message: `No asset "${block.assetHash}"` });
       }
       if (block.type === 'signature' && block.assetHash !== undefined && !assets.has(block.assetHash)) {
         issues.push({ path: `${here}.assetHash`, message: `No asset "${block.assetHash}"` });
       }
-      if (block.type === 'section' || block.type === 'keepTogether' || block.type === 'repeat') walk(block.blocks, `${here}.blocks`);
-      if (block.type === 'columns') block.columns.forEach((c, j) => walk(c.blocks, `${here}.columns.${j}.blocks`));
+      if (block.type === 'section' || block.type === 'repeat') walk(block.blocks, `${here}.blocks`, flow);
+      if (block.type === 'keepTogether') walk(block.blocks, `${here}.blocks`, false);
+      if (block.type === 'columns') block.columns.forEach((c, j) => walk(c.blocks, `${here}.columns.${j}.blocks`, false));
       if (block.type === 'if') {
-        walk(block.then, `${here}.then`);
-        if (block.else) walk(block.else, `${here}.else`);
+        walk(block.then, `${here}.then`, flow);
+        if (block.else) walk(block.else, `${here}.else`, flow);
       }
     });
   };
-  walk(model.blocks, 'blocks');
-  if (model.header) walk(model.header, 'header');
-  if (model.footer) walk(model.footer, 'footer');
+  walk(model.blocks, 'blocks', true);
+  if (model.header) walk(model.header, 'header', false);
+  if (model.footer) walk(model.footer, 'footer', false);
   return issues.length ? { ok: false, issues } : { ok: true, model };
 }

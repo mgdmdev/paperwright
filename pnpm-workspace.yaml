@@ -1,6 +1,7 @@
 packages:
   - "packages/*"
   - "examples/*"
+  - "apps/*"
 allowBuilds:
   esbuild: true
 minimumReleaseAge: 0

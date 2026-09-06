@@ -1,0 +1,37 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --panel: #ffffff;
+  --ink: #1b1b1b;
+  --muted: #6b6b6b;
+  --line: #dcdcd8;
+  --accent: #1e3a8a;
+  --warn: #8a5a00;
+  --error: #9b1c1c;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; background: var(--bg); }
+.app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+.bar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.bar h1 { font-size: 15px; margin: 0; font-weight: 600; }
+.bar select, .bar button { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.bar .status { margin-left: auto; color: var(--muted); }
+.bar .status.error { color: var(--error); }
+.split { display: grid; grid-template-columns: minmax(360px, 42%) 1fr; min-height: 0; }
+.editors { display: grid; grid-template-rows: 1fr 1fr; min-height: 0; border-right: 1px solid var(--line); }
+.editor { display: grid; grid-template-rows: auto 1fr; min-height: 0; border-bottom: 1px solid var(--line); }
+.editor label { padding: 6px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--panel); border-bottom: 1px solid var(--line); }
+.editor textarea { width: 100%; height: 100%; border: 0; resize: none; padding: 12px; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); background: #fbfbfa; outline: none; tab-size: 2; }
+.editor textarea.invalid { background: #fff5f5; }
+.preview { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+.messages { padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); min-height: 34px; font-size: 13px; }
+.messages ul { margin: 0; padding-left: 18px; }
+.messages .warn { color: var(--warn); }
+.messages .error { color: var(--error); }
+.messages .ok { color: var(--muted); }
+.pages { overflow: auto; padding: 24px; background: #8c8c8c; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.pages canvas.page { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: #fff; }
+.preview .empty { display: grid; place-items: center; color: var(--muted); }

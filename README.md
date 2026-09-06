@@ -19,6 +19,7 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 | [`@paperwright/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver. No React, no engine. |
 | [`@paperwright/pdf`](packages/pdf) | Renders a model to PDF through Forme, with the component layer (built on [pdfcn](https://github.com/shadcn-labs/pdfcn)), two themes and the Inter font. |
 | [`examples/basic`](examples/basic) | Four JSON templates (invoice, letter, payslip, certificate) with data, rendered by `pnpm examples`. |
+| [`apps/playground`](apps/playground) | A local page to try templates: edit the template and data as JSON, see the PDF re-render as you type. `pnpm playground`. |
 
 ## Development
 
@@ -27,6 +28,7 @@ pnpm install
 pnpm build        # both packages, in dependency order (tsup, with declarations)
 pnpm test         # builds, then vitest across packages
 pnpm examples     # renders the four example templates into examples/basic/out
+pnpm playground   # http://localhost:5180 — edit template and data JSON, live PDF preview
 pnpm typecheck
 ```
 

@@ -55,10 +55,32 @@ describe('renderPdf', () => {
     const byObject = await renderPdf({ ...input, model: { ...input.model, theme: 'nonsense' } }, { theme: brand });
     expect(byObject.warnings).toEqual([]);
     const overridden = await renderPdf(input, {
-      themeOverrides: { colors: { primary: '#7a1f1f' }, spacing: { page: { marginTop: 96 } } },
+      themeOverrides: { colors: { primary: '#7a1f1f' }, spacing: { sectionGap: 40 } },
     });
     expect(overridden.warnings).toEqual([]);
     expect((await summarizePdf(overridden.bytes)).text[0]).toContain('Renewal of the design retainer');
+  });
+
+  it('makes a paragraph with a link clickable and keeps a heading with its next block', async () => {
+    const input = await loadExample('certificate');
+    const summary = await summarizePdf((await renderPdf(input)).bytes);
+    expect(summary.links).toEqual(['https://verify.northwind.example/c/NWA-2026-01187']);
+
+    const filler = Array.from({ length: 30 }, (_, i) => ({ id: `f${i}`, type: 'text' as const, rich: { spans: [{ text: `Paragraph ${i} of filler text that takes a line.` }] } }));
+    const model = { ...input.model, page: { ...input.model.page, orientation: 'portrait' as const }, blocks: [...filler, { id: 'h', type: 'heading' as const, level: 3 as const, text: 'Pinned heading', keepWithNext: true }, { id: 'p', type: 'text' as const, rich: { spans: [{ text: 'The paragraph that follows the heading.' }] } }] };
+    const pinned = await summarizePdf((await renderPdf({ ...input, model })).bytes);
+    const headingPage = pinned.text.findIndex((t) => t.includes('Pinned heading'));
+    const paragraphPage = pinned.text.findIndex((t) => t.includes('The paragraph that follows'));
+    expect(headingPage).toBeGreaterThanOrEqual(0);
+    expect(paragraphPage).toBe(headingPage);
+  });
+
+  it('drops a pageBreak inside a band with a warning instead of losing the band', async () => {
+    const input = await loadExample('letter');
+    const model = { ...input.model, header: [{ id: 'hh', type: 'heading' as const, level: 4 as const, text: 'HEAD' }, { id: 'hb', type: 'pageBreak' as const }, { id: 'hh2', type: 'heading' as const, level: 4 as const, text: 'HEAD2' }] };
+    const result = await renderPdf({ ...input, model });
+    expect(result.warnings).toEqual(['Block "hb": a pageBreak inside a band, column or keepTogether is ignored']);
+    expect((await summarizePdf(result.bytes)).text[0]).toMatch(/HEAD \| HEAD2/);
   });
 
   it('falls back to the professional theme with a warning for an unknown theme name', async () => {

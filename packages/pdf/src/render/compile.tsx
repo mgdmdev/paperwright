@@ -23,13 +23,18 @@ export interface CompileContext {
   theme: PdfcnTheme;
   /** Resolves an asset hash to the src the engine reads, or undefined when the asset is missing. */
   assetSrc: (hash: string) => string | undefined;
+  /** False inside a band, a column or a keepTogether group, where a page break is dropped with a warning. */
+  flow: boolean;
   warnings: string[];
 }
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
-/** Any subset of a theme: a host's brand colours, a font family, wider margins. */
-export type ThemeOverrides = DeepPartial<PdfcnTheme>;
+/**
+ * Any subset of a theme: a host's brand colours, a font family, spacing between blocks. Page
+ * size and margins come from the model, so the theme's page tokens are not overridable.
+ */
+export type ThemeOverrides = DeepPartial<Omit<PdfcnTheme, 'page' | 'spacing'> & { spacing: Omit<PdfcnTheme['spacing'], 'page'> }>;
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -84,8 +89,40 @@ export function withTheme(ctx: CompileContext, children: ReactNode): ReactElemen
   return <PdfcnThemeProvider theme={ctx.theme}>{children}</PdfcnThemeProvider>;
 }
 
+/** Blocks small enough to be pinned to a heading without forcing a page's worth of content along. */
+const KEEPABLE = new Set<ResolvedBlock['type']>(['heading', 'text', 'keyValue', 'list', 'image', 'qrcode', 'signature', 'divider']);
+
+/**
+ * Compiles a run of blocks. Neither the heading component nor the engine implements
+ * keep-with-next, so a heading that asks for it is grouped with its next sibling in a
+ * non-wrapping View, the way keepTogether works; large siblings (tables, sections, columns)
+ * are left alone so a heading never drags a page of content onto the next page.
+ */
 export function compileBlocks(blocks: ResolvedBlock[], ctx: CompileContext): ReactNode[] {
-  return blocks.map((block) => compileBlock(block, ctx));
+  const out: ReactNode[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
+    const next = blocks[i + 1];
+    if (block.type === 'heading' && block.keepWithNext && next && KEEPABLE.has(next.type)) {
+      out.push(
+        <View key={block.id} wrap={false}>
+          {compileBlock(block, ctx)}
+          {compileBlock(next, ctx)}
+        </View>,
+      );
+      i++;
+      continue;
+    }
+    out.push(compileBlock(block, ctx));
+  }
+  return out;
+}
+
+/** The single link a paragraph can open, or undefined; more than one is reported, since Forme annotates only blocks. */
+function blockLink(spans: Span[], id: string, ctx: CompileContext): string | undefined {
+  const links = [...new Set(spans.map((s) => s.link as string | undefined).filter((l): l is string => !!l))];
+  if (links.length > 1) ctx.warnings.push(`Block "${id}": only one link per text block is clickable; ${links.length} given, the first is used`);
+  return links[0];
 }
 
 const ALIGN_ITEMS = { left: 'flex-start', center: 'center', right: 'flex-end' } as const;
@@ -99,12 +136,21 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
           {block.text as string}
         </Heading>
       );
-    case 'text':
-      return (
+    case 'text': {
+      const text = (
         <Text key={block.id} align={block.rich.align}>
           {compileSpans(block.rich.spans)}
         </Text>
       );
+      const href = blockLink(block.rich.spans, block.id, ctx);
+      return href ? (
+        <View key={block.id} href={href}>
+          {text}
+        </View>
+      ) : (
+        text
+      );
+    }
     case 'divider':
       return <Divider key={block.id} variant={block.variant} />;
     case 'image': {
@@ -128,6 +174,9 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
     case 'keyValue':
       return <KeyValue key={block.id} items={block.items.map((i) => ({ key: i.key as string, value: i.value as string }))} />;
     case 'list':
+      if (block.items.some((item) => item.spans.some((s) => s.link))) {
+        ctx.warnings.push(`Block "${block.id}": links inside list items are shown but not clickable`);
+      }
       return <PdfList key={block.id} variant={block.variant} items={block.items.map((item) => ({ text: compileSpans(item.spans) }))} />;
     case 'table':
       return compileTable(block, ctx);
@@ -136,17 +185,22 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
         // The heading carries the rhythm (top gap, small bottom gap); the section itself adds none,
         // since every block inside already ends with its own bottom margin.
         <Section key={block.id} spacing="none">
-          {block.title !== undefined && (
-            <Heading level={3} keepWithNext>
-              {block.title as string}
-            </Heading>
+          {compileBlocks(
+            [
+              ...(block.title !== undefined ? [{ id: `${block.id}:title`, type: 'heading', level: 3, text: block.title, keepWithNext: true } as ResolvedBlock] : []),
+              ...(block.blocks as ResolvedBlock[]),
+            ],
+            ctx,
           )}
-          {compileBlocks(block.blocks as ResolvedBlock[], ctx)}
         </Section>
       );
     case 'keepTogether':
-      return <KeepTogether key={block.id}>{compileBlocks(block.blocks as ResolvedBlock[], ctx)}</KeepTogether>;
+      return <KeepTogether key={block.id}>{compileBlocks(block.blocks as ResolvedBlock[], { ...ctx, flow: false })}</KeepTogether>;
     case 'pageBreak':
+      if (!ctx.flow) {
+        ctx.warnings.push(`Block "${block.id}": a pageBreak inside a band, column or keepTogether is ignored`);
+        return null;
+      }
       return <Forme.PageBreak key={block.id} />;
     case 'columns': {
       const fractions = columnFractions(
@@ -164,7 +218,7 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
         >
           {block.columns.map((column, i) => (
             <View key={i} style={{ flexGrow: fractions[i], flexBasis: 0 }}>
-              {compileBlocks(column.blocks as ResolvedBlock[], ctx)}
+              {compileBlocks(column.blocks as ResolvedBlock[], { ...ctx, flow: false })}
             </View>
           ))}
         </View>
@@ -253,8 +307,8 @@ const merge = (...styles: (Style | undefined)[]): Style => Object.assign({}, ...
 export function columnFractions(columns: TableColumn[], warn?: (message: string) => void): number[] {
   const declared = columns.reduce((sum, c) => sum + (c.width ?? 0), 0);
   const open = columns.filter((c) => c.width === undefined).length;
-  if (declared > 1.0001) {
-    warn?.(`column widths add up to ${declared.toFixed(2)}; scaled to fit`);
+  if (declared > 1.0001 || (open > 0 && declared > 1 - 0.0001)) {
+    warn?.(open ? `column widths add up to ${declared.toFixed(2)} and leave nothing for ${open} unsized column(s); scaled to fit` : `column widths add up to ${declared.toFixed(2)}; scaled to fit`);
     const mean = declared / (columns.length - open || 1);
     const weights = columns.map((c) => c.width ?? mean);
     const total = weights.reduce((sum, w) => sum + w, 0);

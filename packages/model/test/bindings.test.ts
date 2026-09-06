@@ -27,6 +27,22 @@ describe('parseTemplate', () => {
     expect(() => parseBindingExpression('x | shout')).toThrow(/Unknown filter "shout"/);
   });
 
+  it('rejects an empty path and arguments Intl would throw on', () => {
+    expect(() => parseBindingExpression('')).toThrow(/Empty binding/);
+    expect(() => parseBindingExpression(' | upper')).toThrow(/Empty binding/);
+    expect(() => parseBindingExpression('n | currency:GH')).toThrow(/three letters/);
+    expect(() => parseBindingExpression('n | number:abc')).toThrow(/whole number/);
+    expect(() => parseBindingExpression('n | number:4,2')).toThrow(/not be below/);
+    expect(() => parseBindingExpression('d | date:fancy')).toThrow(/date style/);
+    expect(parseBindingExpression('n | number:0,2 | currency:GHS,code')).toEqual({
+      var: 'n',
+      filters: [
+        { name: 'number', args: { min: '0', max: '2' } },
+        { name: 'currency', args: { code: 'GHS', display: 'code' } },
+      ],
+    });
+  });
+
   it('round-trips through formatBinding', () => {
     const b = parseBindingExpression('amount | number:2,2 | default:"n/a"');
     expect(formatBinding(b)).toBe('{{ amount | number:2,2 | default:n/a }}');

@@ -31,13 +31,26 @@ interface Ctx {
  * never a throw, because a half-rendered document is more useful than none when a host is
  * debugging its data.
  */
+/** A locale Intl accepts, or undefined. */
+export function canonicalLocale(locale: string | undefined): string | undefined {
+  if (!locale) return undefined;
+  try {
+    return Intl.getCanonicalLocales(locale)[0];
+  } catch {
+    return undefined;
+  }
+}
+
 export function resolveDocument(input: RenderInput): ResolvedDocument & { warnings: string[] } {
-  const ctx: Ctx = {
-    root: input.data,
-    scopes: [],
-    locale: input.locale ?? input.model.locale,
-    warnings: [],
-  };
+  const warnings: string[] = [];
+  let locale = canonicalLocale(input.locale);
+  if (input.locale && !locale) warnings.push(`Locale "${input.locale}" is not valid; using the template's`);
+  locale ??= canonicalLocale(input.model.locale);
+  if (!locale) {
+    warnings.push(`Locale "${input.model.locale}" is not valid; using en`);
+    locale = 'en';
+  }
+  const ctx: Ctx = { root: input.data, scopes: [], locale, warnings };
   const header = input.model.header ? resolveBlocks(input.model.header, ctx) : undefined;
   const footer = input.model.footer ? resolveBlocks(input.model.footer, ctx) : undefined;
   const blocks = resolveBlocks(input.model.blocks, ctx);
@@ -71,7 +84,13 @@ function evaluate(ctx: Ctx, binding: Binding): unknown {
   if (value === undefined && !(binding.filters ?? []).some((f) => f.name === 'default')) {
     ctx.warnings.push(`No value for "${binding.var}"`);
   }
-  return applyFilters(value, binding.filters, { locale: ctx.locale });
+  try {
+    return applyFilters(value, binding.filters, { locale: ctx.locale });
+  } catch (error) {
+    // Intl still throws for arguments the parser could not foresee; the page shows the raw value.
+    ctx.warnings.push(`Filter failed for "${binding.var}": ${error instanceof Error ? error.message : String(error)}`);
+    return value;
+  }
 }
 
 export function resolveText(ctx: Ctx, value: BindingOrString | undefined): string {

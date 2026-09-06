@@ -1,0 +1,24 @@
+{
+  "name": "@paperwright/playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@paperwright/model": "workspace:*",
+    "@paperwright/pdf": "workspace:*",
+    "pdfjs-dist": "^5.7.284",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0"
+  }
+}

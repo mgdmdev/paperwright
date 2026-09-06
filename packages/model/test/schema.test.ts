@@ -38,7 +38,7 @@ describe('validateModel', () => {
     const result = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'table', columns: [{ key: 'a', header: 'A', width: 0.6 }, { key: 'b', header: 'B', width: 0.6 }], rows: [] }] });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.issues.map((i) => i.message)).toContain('Column widths add up to more than 1');
+    expect(result.issues.map((i) => i.message)).toContain('Column widths add up to the whole row or more');
   });
 
   it('walks columns for ids and assets, and rejects column widths over 1', () => {
@@ -47,13 +47,51 @@ describe('validateModel', () => {
     ] });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.issues.map((i) => i.message)).toContain('Column widths add up to more than 1');
+    expect(result.issues.map((i) => i.message)).toContain('Column widths add up to the whole row or more');
     const ok = validateModel({ ...invoiceModel, blocks: [
       { id: 'c', type: 'columns', columns: [{ blocks: [{ id: 'img', type: 'image', assetHash: 'missing' }] }, { blocks: [] }] },
     ] });
     expect(ok.ok).toBe(false);
     if (ok.ok) return;
     expect(ok.issues).toEqual([{ path: 'blocks.0.columns.0.blocks.0.assetHash', message: 'No asset "missing"' }]);
+  });
+
+  it('rejects filter arguments and locales that Intl would throw on, in both binding forms', () => {
+    const inline = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'heading', level: 1, text: '{{ n | currency:GH }}' }] });
+    expect(inline.ok).toBe(false);
+    if (inline.ok) return;
+    expect(inline.issues[0]).toMatchObject({ path: 'blocks.0.text', message: expect.stringMatching(/three letters/) });
+    const object = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'heading', level: 1, text: { var: 'n', filters: [{ name: 'number', args: { min: '-1' } }] } }] });
+    expect(object.ok).toBe(false);
+    const locale = validateModel({ ...invoiceModel, locale: 'en US' });
+    expect(locale.ok).toBe(false);
+    if (locale.ok) return;
+    expect(locale.issues[0]).toMatchObject({ path: 'locale', message: 'Not a valid BCP 47 locale' });
+  });
+
+  it('rejects a pageBreak where it cannot break: bands, columns, keepTogether', () => {
+    const result = validateModel({
+      ...invoiceModel,
+      header: [{ id: 'h1', type: 'pageBreak' }],
+      blocks: [
+        { id: 'ok', type: 'pageBreak' },
+        { id: 'k', type: 'keepTogether', blocks: [{ id: 'k1', type: 'pageBreak' }] },
+        { id: 'c', type: 'columns', columns: [{ blocks: [{ id: 'c1', type: 'pageBreak' }] }] },
+        { id: 's', type: 'section', blocks: [{ id: 's1', type: 'pageBreak' }] },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.map((i) => i.path)).toEqual(['blocks.1.blocks.0', 'blocks.2.columns.0.blocks.0', 'header.0']);
+  });
+
+  it('rejects table rows that do not match the column count and widths that fill the row with open columns left', () => {
+    const rows = validateModel({ ...invoiceModel, blocks: [{ id: 't', type: 'table', columns: [{ key: 'a', header: 'A' }, { key: 'b', header: 'B' }], rows: [['1'], ['1', '2', '3']] }] });
+    expect(rows.ok).toBe(false);
+    if (rows.ok) return;
+    expect(rows.issues.map((i) => i.message)).toContain('Each row must have one cell per column');
+    const widths = validateModel({ ...invoiceModel, blocks: [{ id: 'c', type: 'columns', columns: [{ width: 0.5, blocks: [] }, { width: 0.5, blocks: [] }, { blocks: [] }] }] });
+    expect(widths.ok).toBe(false);
   });
 
   it('rejects an unknown block type at the schema level', () => {
