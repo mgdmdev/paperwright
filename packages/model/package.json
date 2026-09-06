@@ -1,5 +1,5 @@
 {
-  "name": "@docform/model",
+  "name": "@paperwright/model",
   "version": "0.0.0",
   "description": "The docform document model: types, schema, binding evaluator, migrations",
   "license": "MIT",

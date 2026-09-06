@@ -2,13 +2,13 @@ import type { ReactElement } from 'react';
 
 /**
  * The engine adapter. The compiler builds React trees out of the component layer in
- * @docform/react for the base an engine renders, and the engine lays them out into PDF bytes.
+ * @paperwright/react for the base an engine renders, and the engine lays them out into PDF bytes.
  * Engines differ in what they can do, so the adapter is the one place those differences show.
  */
 
 export type EngineName = 'forme' | 'takumi';
 
-/** Which component base of @docform/react an engine consumes. */
+/** Which component base of @paperwright/react an engine consumes. */
 export type Base = 'forme' | 'takumi';
 
 export interface EngineCapabilities {

@@ -6,8 +6,8 @@ your data (`{{ invoice.total | currency:GHS }}`), repeats and conditionals, a he
 that repeat on every page. The same template renders on either engine.
 
 ```ts
-import { migrateModel } from '@docform/model';
-import { createFormeEngine, renderPdf } from '@docform/render-pdf';
+import { migrateModel } from '@paperwright/model';
+import { createFormeEngine, renderPdf } from '@paperwright/render-pdf';
 
 const model = migrateModel(JSON.parse(templateJson));
 const { bytes, warnings } = await renderPdf(
@@ -20,9 +20,9 @@ const { bytes, warnings } = await renderPdf(
 
 | Package | What it is |
 |---|---|
-| [`@docform/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver, migrations. No React, no engine. |
-| [`@docform/react`](packages/react) | The component layer for both engines (vendored from pdfcn, with fixes), themes, and a context-aware tree resolver for Forme. |
-| [`@docform/render-pdf`](packages/render-pdf) | Compiles a resolved model to the component tree and renders it through an engine adapter. Ships Forme and Takumi engines and the Inter font. |
+| [`@paperwright/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver, migrations. No React, no engine. |
+| [`@paperwright/react`](packages/react) | The component layer for both engines (vendored from pdfcn, with fixes), themes, and a context-aware tree resolver for Forme. |
+| [`@paperwright/render-pdf`](packages/render-pdf) | Compiles a resolved model to the component tree and renders it through an engine adapter. Ships Forme and Takumi engines and the Inter font. |
 | [`examples/basic`](examples/basic) | Three JSON templates (invoice, letter, payslip) with data, rendered on both engines by `pnpm examples`. |
 
 ## Engines

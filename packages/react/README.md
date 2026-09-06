@@ -1,9 +1,9 @@
-# @docform/react
+# @paperwright/react
 
 The document component layer docform renders with, for both engines, plus the themes.
 
 ```ts
-import { forme, takumi, themePresets } from '@docform/react';
+import { forme, takumi, themePresets } from '@paperwright/react';
 ```
 
 `forme.*` and `takumi.*` expose the same components (`Heading`, `Text`, `Table`, `KeyValue`,
@@ -20,7 +20,7 @@ docform carries on top of upstream:
 - **`forme.resolveTree(element)`.** Forme's `serialize()` calls components without a hook
   dispatcher, so context cannot reach them. `resolveTree` expands every component to Forme
   primitives first, with a dispatcher that supports `useContext`, `useMemo`, `useRef` and the
-  rest, then hands the primitive tree to `serialize()`. `@docform/render-pdf` does this for you.
+  rest, then hands the primitive tree to `serialize()`. `@paperwright/render-pdf` does this for you.
 - **Takumi `PageHeader` and `PageFooter` forward `fixed`.** Upstream declared the prop and never
   used it.
 - **Signature block `image` prop** for a captured signature drawn above the line.

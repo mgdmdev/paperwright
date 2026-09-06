@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import * as Forme from '@formepdf/react';
-import { forme, takumi, themePresets } from '@docform/react';
-import type { PdfcnTheme, ThemePresetName } from '@docform/react';
-import type { ResolvedBlock, Span, TableBlock, TableColumn } from '@docform/model';
+import { forme, takumi, themePresets } from '@paperwright/react';
+import type { PdfcnTheme, ThemePresetName } from '@paperwright/react';
+import type { ResolvedBlock, Span, TableBlock, TableColumn } from '@paperwright/model';
 import type { Base } from './engine';
 
 export interface CompileContext {

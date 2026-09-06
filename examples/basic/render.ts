@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { migrateModel } from '@docform/model';
-import { createFormeEngine, createTakumiEngine, renderPdf } from '@docform/render-pdf';
+import { migrateModel } from '@paperwright/model';
+import { createFormeEngine, createTakumiEngine, renderPdf } from '@paperwright/render-pdf';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const names = process.argv.slice(2).length ? process.argv.slice(2) : ['invoice', 'letter', 'payslip'];

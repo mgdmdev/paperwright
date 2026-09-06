@@ -1,4 +1,4 @@
-# @docform/model
+# @paperwright/model
 
 The docform document model. A template is data: this package defines its shape, validates it,
 resolves bindings against your data, and migrates older versions forward. It has no React and no
@@ -53,7 +53,7 @@ variable is whatever `as` names; inside a `dataTable`, each row's fields are in 
 ## API
 
 ```ts
-import { migrateModel, validateModel, resolveDocument, listBindings } from '@docform/model';
+import { migrateModel, validateModel, resolveDocument, listBindings } from '@paperwright/model';
 
 const model = migrateModel(json);            // any supported version → current, validated; throws ModelError
 const result = validateModel(json);          // { ok: true, model } | { ok: false, issues }

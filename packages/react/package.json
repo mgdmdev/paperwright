@@ -1,5 +1,5 @@
 {
-  "name": "@docform/react",
+  "name": "@paperwright/react",
   "version": "0.0.0",
   "description": "Document components for Forme and Takumi, with themes (vendored from pdfcn)",
   "license": "MIT",

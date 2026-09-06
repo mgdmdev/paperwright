@@ -1,7 +1,7 @@
 ---
-"@docform/model": minor
-"@docform/react": minor
-"@docform/render-pdf": minor
+"@paperwright/model": minor
+"@paperwright/react": minor
+"@paperwright/render-pdf": minor
 ---
 
 Initial release: document model with bindings, filters, resolver and migrations; the component

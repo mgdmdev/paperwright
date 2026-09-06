@@ -222,7 +222,7 @@ export interface DocumentModel {
   /** BCP 47; the default for date, number and currency filters. */
   locale: string;
   page: PageSetup;
-  /** Theme name from @docform/react, or undefined for the default. */
+  /** Theme name from @paperwright/react, or undefined for the default. */
   theme?: string;
   /** Rendered on every page. */
   header?: Block[];

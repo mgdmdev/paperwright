@@ -1,9 +1,9 @@
-# @docform/render-pdf
+# @paperwright/render-pdf
 
 Renders a docform model to PDF through an engine adapter.
 
 ```ts
-import { createFormeEngine, createTakumiEngine, renderPdf } from '@docform/render-pdf';
+import { createFormeEngine, createTakumiEngine, renderPdf } from '@paperwright/render-pdf';
 
 const { bytes, warnings } = await renderPdf(
   { model, data, assets: new Map([[hash, pngBytes]]) },
@@ -21,7 +21,7 @@ families and register them yourself), `metadata`, `pdfA`.
 ```ts
 interface DocumentEngine {
   name: 'forme' | 'takumi';
-  base: 'forme' | 'takumi';          // which @docform/react component base it consumes
+  base: 'forme' | 'takumi';          // which @paperwright/react component base it consumes
   capabilities: EngineCapabilities;
   imageSrc(image: EngineImage): string;
   render(doc: EngineDocument): Promise<Uint8Array>;

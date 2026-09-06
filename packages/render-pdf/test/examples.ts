@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { migrateModel } from '@docform/model';
-import type { DocumentModel, RenderData } from '@docform/model';
+import { migrateModel } from '@paperwright/model';
+import type { DocumentModel, RenderData } from '@paperwright/model';
 
 const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../examples/basic');
 

@@ -1,5 +1,5 @@
 {
-  "name": "@docform/example-basic",
+  "name": "@paperwright/example-basic",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,8 +7,8 @@
     "render": "tsx render.ts"
   },
   "dependencies": {
-    "@docform/model": "workspace:*",
-    "@docform/react": "workspace:*",
-    "@docform/render-pdf": "workspace:*"
+    "@paperwright/model": "workspace:*",
+    "@paperwright/react": "workspace:*",
+    "@paperwright/render-pdf": "workspace:*"
   }
 }

@@ -1,4 +1,4 @@
-import type { DocumentModel, PageSize } from '@docform/model';
+import type { DocumentModel, PageSize } from '@paperwright/model';
 import type { PageGeometry } from './engine';
 
 const SIZES: Record<Exclude<PageSize, object>, { width: number; height: number }> = {

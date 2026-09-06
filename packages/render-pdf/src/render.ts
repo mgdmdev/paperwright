@@ -1,5 +1,5 @@
-import { resolveDocument } from '@docform/model';
-import type { RenderInput } from '@docform/model';
+import { resolveDocument } from '@paperwright/model';
+import type { RenderInput } from '@paperwright/model';
 import { compileBlocks, themeFor, withTheme } from './compile';
 import type { CompileContext } from './compile';
 import type { DocumentEngine, EngineImage, FontFace } from './engine';

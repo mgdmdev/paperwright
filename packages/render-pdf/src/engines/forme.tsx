@@ -1,7 +1,7 @@
 import { renderSerializedDoc } from '@formepdf/core';
 import { Document, Fixed, Page, serialize } from '@formepdf/react';
 import type { FontRegistration } from '@formepdf/react';
-import { forme } from '@docform/react';
+import { forme } from '@paperwright/react';
 import type { DocumentEngine, EngineDocument, EngineImage } from '../engine';
 
 const toBase64 = (bytes: Uint8Array): string => {
