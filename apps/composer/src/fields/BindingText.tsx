@@ -73,12 +73,13 @@ interface Choice {
  * table row the loop-relative ones first.
  */
 function BindingTextField({ name, value, onChange, field, multiline, mode }: { name: string; value: string; onChange: (v: string) => void; field: { label?: string }; multiline?: boolean; mode: Mode }) {
+  // Each selector returns a value the store already holds; a fresh array here would re-render forever.
   const sample = usePuckStore((s) => String(s.appState.data.root.props?.sampleData ?? '{}'));
   const selected = usePuckStore((s) => s.selectedItem as Component | null);
-  const roots = usePuckStore((s) => {
-    const r = s.appState.data.root.props as { header?: unknown; footer?: unknown } | undefined;
-    return [...(s.appState.data.content as unknown[]), ...((r?.header as unknown[]) ?? []), ...((r?.footer as unknown[]) ?? [])];
-  });
+  const content = usePuckStore((s) => s.appState.data.content as unknown[]);
+  const header = usePuckStore((s) => (s.appState.data.root.props as { header?: unknown[] } | undefined)?.header);
+  const footer = usePuckStore((s) => (s.appState.data.root.props as { footer?: unknown[] } | undefined)?.footer);
+  const roots = useMemo(() => [...content, ...(header ?? []), ...(footer ?? [])], [content, header, footer]);
 
   const choices = useMemo<Choice[]>(() => {
     let data: unknown = {};

@@ -15,9 +15,11 @@ export function PdfPages({ bytes }: { bytes: ArrayBuffer | null }) {
   useEffect(() => {
     const el = host.current;
     if (!el) return;
+    // A scrollbar appearing after pages are drawn nudges the width by a few pixels; refitting for
+    // that would redraw, move the scrollbar, and loop. Only a real resize refits.
     const observer = new ResizeObserver(([entry]) => {
       const w = Math.floor(entry?.contentRect.width ?? 0);
-      if (w > 0) setWidth(w);
+      if (w > 0) setWidth((prev) => (Math.abs(w - prev) > 8 ? w : prev));
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -50,7 +52,9 @@ export function PdfPages({ bytes }: { bytes: ArrayBuffer | null }) {
           canvas.style.height = `${viewport.height / dpr}px`;
           canvas.className = 'page';
           container.appendChild(canvas);
-          await page.render({ canvas, viewport }).promise;
+          // Print intent schedules on promises rather than animation frames, so a background or
+          // occluded tab (where rAF never fires) still finishes rendering.
+          await page.render({ canvas, viewport, intent: 'print' }).promise;
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));

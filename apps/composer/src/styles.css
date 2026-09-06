@@ -53,12 +53,13 @@ html, body, #root { height: 100%; margin: 0; }
 .pw-field-error { color: #9b1c1c; font-size: 12px; }
 
 /* Preview panel */
-.pw-panel { display: grid; grid-template-rows: auto auto 1fr; height: 100%; min-height: 0; }
+.pw-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100%; min-height: 0; }
+.pw-panel-messages:empty { display: none; }
 .pw-panel-status { padding: 8px 12px; color: #666; font-size: 12px; border-bottom: 1px solid #e5e5e5; }
 .pw-panel-issues, .pw-panel-warnings { margin: 0; padding: 8px 12px 8px 28px; font-size: 12px; border-bottom: 1px solid #e5e5e5; }
 .pw-panel-issues { color: #9b1c1c; }
 .pw-panel-warnings { color: #8a5a00; }
-.pw-panel-pages { min-height: 0; overflow: auto; }
-.pw-panel .pages { padding: 12px; gap: 12px; background: #8c8c8c; }
+.pw-panel-pages { min-height: 0; overflow: auto; scrollbar-gutter: stable; }
+.pw-panel .pages { padding: 12px; gap: 12px; background: #8c8c8c; min-height: 100%; scrollbar-gutter: stable; }
 .pw-panel .pages canvas.page { box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-.pw-panel .pages canvas.page { max-width: 100%; height: auto !important; }
+.pw-panel .pages canvas.page { max-width: 100%; flex-shrink: 0; }

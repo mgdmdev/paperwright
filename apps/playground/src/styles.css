@@ -32,7 +32,7 @@ html, body, #root { height: 100%; margin: 0; background: var(--bg); }
 .messages .warn { color: var(--warn); }
 .messages .error { color: var(--error); }
 .messages .ok { color: var(--muted); }
-.pages { overflow: auto; padding: 24px; background: #8c8c8c; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.pages { overflow: auto; padding: 24px; background: #8c8c8c; display: flex; flex-direction: column; align-items: center; gap: 24px; scrollbar-gutter: stable; }
 .pages canvas.page { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: #fff; }
 .preview .empty { display: grid; place-items: center; color: var(--muted); }
-.pages canvas.page { max-width: 100%; height: auto !important; }
+.pages canvas.page { max-width: 100%; flex-shrink: 0; }

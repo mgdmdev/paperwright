@@ -10,7 +10,7 @@
   "dependencies": {
     "@paperwright/model": "workspace:*",
     "@paperwright/pdf": "workspace:*",
-    "pdfjs-dist": "^5.7.284",
+    "pdfjs-dist": "^6.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

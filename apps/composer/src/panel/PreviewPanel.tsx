@@ -82,11 +82,13 @@ export function PreviewPanel({ assets }: { assets: AssetRef[] }) {
   return (
     <div className="pw-panel">
       <div className="pw-panel-status">{status}</div>
-      {issues.length > 0 ? (
-        <ul className="pw-panel-issues">{issues.map((i, k) => <li key={k}>{i.path ? <code>{i.path}</code> : null} {i.message}</li>)}</ul>
-      ) : warnings.length > 0 ? (
-        <ul className="pw-panel-warnings">{warnings.map((w, k) => <li key={k}>{w}</li>)}</ul>
-      ) : null}
+      <div className="pw-panel-messages">
+        {issues.length > 0 ? (
+          <ul className="pw-panel-issues">{issues.map((i, k) => <li key={k}>{i.path ? <code>{i.path}</code> : null} {i.message}</li>)}</ul>
+        ) : warnings.length > 0 ? (
+          <ul className="pw-panel-warnings">{warnings.map((w, k) => <li key={k}>{w}</li>)}</ul>
+        ) : null}
+      </div>
       <div className="pw-panel-pages">{pdf ? <PdfPages bytes={pdf} /> : <div className="pw-muted">The PDF appears here.</div>}</div>
     </div>
   );
