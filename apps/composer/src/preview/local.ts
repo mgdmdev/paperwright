@@ -56,17 +56,26 @@ export class LocalRenderer {
   private loadFonts(): Promise<FontFace[]> {
     this.fonts ??= Promise.all(
       FONT_FILES.map(async (f) => ({ family: 'Inter', weight: f.weight, style: f.style, data: new Uint8Array(await (await fetch(f.url)).arrayBuffer()) })),
-    );
+    ).catch((e: unknown) => {
+      // A failed fetch is not remembered, or one hiccup would cost the browser renderer until reload.
+      this.fonts = null;
+      throw e;
+    });
     return this.fonts;
   }
 
   private image(hash: string): Promise<Uint8Array> {
     let pending = this.images.get(hash);
     if (!pending) {
-      pending = fetch(`/api/assets/${hash}`).then(async (r) => {
-        if (!r.ok) throw new Error(`no bytes for asset ${hash}`);
-        return new Uint8Array(await r.arrayBuffer());
-      });
+      pending = fetch(`/api/assets/${hash}`)
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`no bytes for asset ${hash}`);
+          return new Uint8Array(await r.arrayBuffer());
+        })
+        .catch((e: unknown) => {
+          this.images.delete(hash);
+          throw e;
+        });
       this.images.set(hash, pending);
     }
     return pending;

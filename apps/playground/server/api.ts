@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
@@ -262,11 +262,19 @@ export function playgroundApi(examplesDir: string, uploadsDir: string, templates
         const id = decodeURIComponent((req.url ?? '').replace(/^\//, '').split('?')[0] ?? '');
         if (id && !SAFE_ID.test(id)) return json(res, 400, { error: 'Template ids are letters, digits, dot, dash and underscore' });
         const file = (i: string) => path.join(templatesDir, `${i}.json`);
+        /** Absent is undefined; unreadable is an error, so a damaged file is never mistaken for none. */
         const readEntry = async (i: string) => {
+          let text: string;
           try {
-            return JSON.parse(await readFile(file(i), 'utf8')) as Record<string, unknown>;
+            text = await readFile(file(i), 'utf8');
+          } catch (e) {
+            if ((e as { code?: string }).code === 'ENOENT') return undefined;
+            throw e;
+          }
+          try {
+            return JSON.parse(text) as Record<string, unknown>;
           } catch {
-            return undefined;
+            throw new Error(`${i}.json in the template store is not valid JSON`);
           }
         };
         if (req.method === 'HEAD') {
@@ -277,7 +285,16 @@ export function playgroundApi(examplesDir: string, uploadsDir: string, templates
         if (req.method === 'GET' && !id) {
           await mkdir(templatesDir, { recursive: true });
           const names = (await readdir(templatesDir)).filter((f) => f.endsWith('.json'));
-          const entries = (await Promise.all(names.map((f) => readEntry(f.replace(/\.json$/, ''))))).filter((e): e is Record<string, unknown> => !!e);
+          const entries: Record<string, unknown>[] = [];
+          for (const f of names) {
+            try {
+              const entry = await readEntry(f.replace(/\.json$/, ''));
+              if (entry) entries.push(entry);
+            } catch (e) {
+              // One damaged file must not hide every other template; the server log says which it is.
+              console.warn(`[paperwright] skipping ${f}: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
           entries.sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')));
           return json(res, 200, entries);
         }
@@ -292,7 +309,10 @@ export function playgroundApi(examplesDir: string, uploadsDir: string, templates
           if (!validated.ok) return json(res, 400, { error: 'The template is invalid', issues: validated.issues });
           const entry = { id, name: typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 200) : validated.model.name, model: validated.model, sampleData: body.sampleData ?? {}, updatedAt: new Date().toISOString() };
           await mkdir(templatesDir, { recursive: true });
-          await writeFile(file(id), JSON.stringify(entry, null, 2));
+          // Written beside the target and renamed into place, so a reader never sees half a file.
+          const tmp = `${file(id)}.${process.pid}.${Date.now().toString(36)}.tmp`;
+          await writeFile(tmp, JSON.stringify(entry, null, 2));
+          await rename(tmp, file(id));
           return json(res, 200, entry);
         }
         if (req.method === 'DELETE' && id) {

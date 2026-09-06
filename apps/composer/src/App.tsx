@@ -29,6 +29,19 @@ interface Current {
   source: 'example' | 'mine';
 }
 
+/** The sample data typed on the page: JSON when it parses, the raw text otherwise. */
+const sampleOf = (d: ComposerData): unknown => {
+  const text = String(d.root.props?.sampleData || '{}');
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
+/** What a failed action says in the notice. */
+const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 const download = (name: string, text: string) => {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   const a = document.createElement('a');
@@ -47,6 +60,7 @@ export function App() {
   const [mine, setMine] = useState<LibraryEntry[]>([]);
   const [key, setKey] = useState(0);
   const [notice, setNotice] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
   const assets = useAssets();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -54,23 +68,47 @@ export function App() {
   /** The save that is waiting for the debounce, with the template it was scheduled for. */
   const pending = useRef<{ c: Current; d: ComposerData } | null>(null);
   const latest = useRef<ComposerData | null>(null);
+  /** Saves on their way to the store, by template id, so a delete lets them land first. */
+  const inFlight = useRef(new Map<string, Promise<unknown>>());
+  const listSeq = useRef(0);
 
   useEffect(() => {
-    Promise.all([fetch('/api/examples').then((r) => r.json() as Promise<Examples>), fetch('/api/themes').then((r) => r.json() as Promise<CanvasMetadata['themes']>), chooseStore()]).then(async ([ex, th, st]) => {
-      setExamples(ex);
-      setThemes(th);
-      setStore(st);
-      assetStore.set(ex.assets);
-      const entries = await st.list();
-      setMine(entries);
-      const last = entries[0];
-      if (last) openMine(last);
-      else openExample(ex, ex.names.includes('invoice') ? 'invoice' : ex.names[0]!);
-    });
+    const load = async <T,>(url: string): Promise<T> => {
+      const r = await fetch(url);
+      const body = (await r.json().catch(() => null)) as (T & { error?: string }) | null;
+      if (!r.ok) throw new Error(body?.error ?? `${url} answered ${r.status}`);
+      return body as T;
+    };
+    (async () => {
+      try {
+        const [ex, th, st] = await Promise.all([load<Examples>('/api/examples'), load<CanvasMetadata['themes']>('/api/themes'), chooseStore()]);
+        setExamples(ex);
+        setThemes(th);
+        setStore(st);
+        assetStore.set(ex.assets);
+        const entries = await st.list();
+        setMine(entries);
+        const last = entries[0];
+        if (last) openMine(last);
+        else openExample(ex, ex.names.includes('invoice') ? 'invoice' : ex.names[0]!);
+      } catch (e) {
+        setLoadError(reason(e));
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refresh = async (st: TemplateStore) => setMine(await st.list());
+  /** Lists can answer out of order; only the newest request may set the sidebar. */
+  const refresh = async (st: TemplateStore) => {
+    const seq = ++listSeq.current;
+    const entries = await st.list();
+    if (seq === listSeq.current) setMine(entries);
+  };
+
+  /** Header actions report a failure in the notice instead of dying as unhandled rejections. */
+  const run = (what: string, action: () => Promise<void>) => {
+    action().catch((e: unknown) => setNotice(`Could not ${what}: ${reason(e)}`));
+  };
 
   const mount = (c: Current, model: DocumentModel, sampleData: unknown) => {
     // A save still waiting for the previous template must not fire against this one.
@@ -99,15 +137,15 @@ export function App() {
     async (c: Current, d: ComposerData) => {
       if (!store) throw new Error('no store yet');
       const model = dataToModel(d, assetStore.get(), c.id);
-      let sampleData: unknown = {};
+      const job = store.save({ id: c.id, name: model.name, model, sampleData: sampleOf(d) });
+      inFlight.current.set(c.id, job);
       try {
-        sampleData = JSON.parse(String(d.root.props?.sampleData || '{}'));
-      } catch {
-        sampleData = d.root.props?.sampleData ?? '{}';
+        const saved = await job;
+        await refresh(store);
+        return saved;
+      } finally {
+        if (inFlight.current.get(c.id) === job) inFlight.current.delete(c.id);
       }
-      const saved = await store.save({ id: c.id, name: model.name, model, sampleData });
-      await refresh(store);
-      return saved;
     },
     [store],
   );
@@ -119,7 +157,7 @@ export function App() {
     if (current.source === 'example') {
       const forked: Current = { id: library.newId(), name: current.name, source: 'mine' };
       setCurrent(forked);
-      void persist(forked, d).then(() => setNotice(`Saved as your own copy of "${current.name}" in ${store?.name ?? 'this browser'}`), (e) => setNotice(`Could not save: ${e instanceof Error ? e.message : String(e)}`));
+      void persist(forked, d).then(() => setNotice(`Saved as your own copy of "${current.name}" in ${store?.name ?? 'this browser'}`), (e) => setNotice(`Could not save: ${reason(e)}`));
       return;
     }
     pending.current = { c: current, d };
@@ -130,7 +168,7 @@ export function App() {
       if (!job) return;
       void persist(job.c, job.d).then(
         (saved) => setCurrent((now) => (now && now.id === job.c.id && now.name !== saved.name ? { ...now, name: saved.name } : now)),
-        (e) => setNotice(`Could not save: ${e instanceof Error ? e.message : String(e)}`),
+        (e) => setNotice(`Could not save: ${reason(e)}`),
       );
     }, 800);
   };
@@ -158,7 +196,7 @@ export function App() {
       mount({ id, name: model.name, source: 'mine' }, model, sampleData);
       setNotice(`Opened ${file.name}`);
     } catch (e) {
-      setNotice(`Could not open ${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+      setNotice(`Could not open ${file.name}: ${reason(e)}`);
     } finally {
       if (fileInput.current) fileInput.current.value = '';
     }
@@ -177,7 +215,10 @@ export function App() {
     if (!current || current.source !== 'mine' || !store) return;
     window.clearTimeout(saveTimer.current);
     pending.current = null;
+    // A save already on its way would recreate the template after the delete; let it land first.
+    await inFlight.current.get(current.id)?.catch(() => undefined);
     await store.remove(current.id);
+    listSeq.current++;
     const entries = await store.list();
     setMine(entries);
     const next = entries[0];
@@ -199,13 +240,8 @@ export function App() {
   const currentForAi = () => {
     const d = latest.current ?? data;
     if (!d || !current) return null;
-    let sampleData: unknown = {};
-    try {
-      sampleData = JSON.parse(String(d.root.props?.sampleData || '{}'));
-    } catch {
-      sampleData = {};
-    }
-    return { model: dataToModel(d, assetStore.get(), current.id), sampleData };
+    const sample = sampleOf(d);
+    return { model: dataToModel(d, assetStore.get(), current.id), sampleData: typeof sample === 'string' ? {} : sample };
   };
 
   const hashes = useMemo(() => assets.map((a) => a.hash), [assets]);
@@ -221,6 +257,14 @@ export function App() {
     [],
   );
 
+  if (loadError) {
+    return (
+      <div className="pw-loading">
+        Could not start the composer: {loadError}{' '}
+        <button type="button" onClick={() => window.location.reload()}>Try again</button>
+      </div>
+    );
+  }
   if (!data || !examples || !themes || !current) return <div className="pw-loading">Loading…</div>;
 
   return (
@@ -235,7 +279,7 @@ export function App() {
       iframe={{ enabled: false }}
       headerTitle={`${current.name}${current.source === 'example' ? ' (example)' : ''}`}
       onChange={onChange}
-      onPublish={(d) => download(current.name, JSON.stringify(dataToModel(d, assetStore.get(), current.id), null, 2))}
+      onPublish={(d) => download(current.name, JSON.stringify({ template: dataToModel(d, assetStore.get(), current.id), data: sampleOf(d) }, null, 2))}
       overrides={{
         headerActions: ({ children }) => (
           <>
@@ -246,7 +290,15 @@ export function App() {
                   const [source, ...rest] = e.target.value.split(':');
                   const id = rest.join(':');
                   if (source === 'example') openExample(examples, id);
-                  else void store?.get(id).then((entry) => entry && openMine(entry));
+                  else
+                    run('open the template', async () => {
+                      const entry = store ? await store.get(id) : undefined;
+                      if (!entry) {
+                        if (store) await refresh(store);
+                        throw new Error('it is no longer in the store');
+                      }
+                      openMine(entry);
+                    });
                 }}
               >
                 <optgroup label={`My templates (${store?.name ?? '…'})`}>
@@ -265,12 +317,12 @@ export function App() {
                   ))}
                 </optgroup>
               </select>
-              <button type="button" onClick={() => void newBlank()}>New</button>
+              <button type="button" onClick={() => run('create a template', newBlank)}>New</button>
               <button type="button" onClick={() => fileInput.current?.click()}>Open…</button>
-              <button type="button" onClick={() => void duplicate()}>Duplicate</button>
+              <button type="button" onClick={() => run('duplicate it', duplicate)}>Duplicate</button>
               <button type="button" onClick={() => setAiOpen(true)}>AI…</button>
               {current.source === 'mine' ? (
-                <button type="button" className="pw-danger" onClick={() => void remove()}>Delete</button>
+                <button type="button" className="pw-danger" onClick={() => run('delete it', remove)}>Delete</button>
               ) : null}
               <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => void openFile(e.currentTarget.files?.[0])} />
               {notice ? <span className="pw-notice">{notice}</span> : null}

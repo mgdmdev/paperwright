@@ -25,8 +25,8 @@ const read = (): Record<string, LibraryEntry> => {
 const write = (entries: Record<string, LibraryEntry>) => {
   try {
     localStorage.setItem(KEY, JSON.stringify(entries));
-  } catch {
-    // Storage full or blocked: the session still works, it just is not remembered.
+  } catch (e) {
+    throw new Error(`this browser refused to store it (${e instanceof Error ? e.message : 'storage is full or blocked'})`);
   }
 };
 

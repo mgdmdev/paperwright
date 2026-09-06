@@ -25,7 +25,10 @@ const ensure = () =>
   (ready ??= (async () => {
     const module = await WebAssembly.compileStreaming(fetch(wasmUrl));
     await init(module);
-  })());
+  })().catch((e: unknown) => {
+    ready = undefined;
+    throw e;
+  }));
 
 self.onmessage = async (event: MessageEvent<RenderJob>) => {
   const job = event.data;
