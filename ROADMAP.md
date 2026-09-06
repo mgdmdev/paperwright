@@ -26,10 +26,13 @@ A drag-and-drop editor over the model. The model is the source of truth and the 
 view of it; nothing the builder can express is outside the schema.
 
 - Done: Puck as the canvas (`apps/composer`), blocks palette, property panels, variable picker
-  with loop-relative paths, live PDF panel, your own templates with a browser-side library,
-  image upload, and the AI dialog below.
-- Live preview in the browser itself (Forme's browser build in a worker) instead of the dev API.
-- A storage adapter so a host keeps templates in its own database rather than the browser.
+  with loop-relative paths, image upload, and the AI dialog below.
+- Done: the live PDF panel renders in the browser itself, in a Web Worker running Forme's worker
+  build and the same `renderPdf` as the server; the dev API is the fallback when the worker
+  cannot load.
+- Done: your own templates behind a `TemplateStore` (`apps/composer/src/store.ts`). The composer
+  uses the dev server's file store when one answers, and the browser's storage otherwise; a host
+  implements the same four methods over its own database.
 - Template gallery: convert pdfcn's ten invoice and report designs into JSON templates, which is
   also where "starter templates" for a marketplace come from.
 - First consumer cutover: the certificate above replaces PRISM's LMS certificate, then the
@@ -46,8 +49,9 @@ provider-neutral: an interface the host implements with its own model and keys.
 - **Sample data for the preview** (done). Synthesised from the template and checked with the real
   resolver; bindings still empty go back for another round.
 - **Edit by instruction** (done, whole-template rewrite). "Move the totals under the table and make
-  the invoice number red" returns the full template with untouched ids kept. A block-level diff, so
-  the canvas can show what changed, is the next step.
+  the invoice number red" returns the full template with untouched ids kept. `diffTemplates`
+  reports which blocks were added, removed, changed or moved, and the composer records that on
+  the saved version; highlighting them on the canvas is the next step.
 - **Binding suggestions.** Match a template's bindings against the keys of a data sample (exact,
   then fuzzy) to wire up a template pasted from elsewhere, or to flag bindings the data will
   never satisfy before a render is attempted.
@@ -70,8 +74,10 @@ provider-neutral: an interface the host implements with its own model and keys.
 - **DOCX as an editable export (0.3)**: rendered from the same model with `docx`, twice rather
   than converted, for the letters HR wants to finish in Word.
 - **Word import (0.4)**: the draft importer above, with headers and footers read from the OOXML.
-- **Browser rendering**: Forme's browser and worker builds; the bundled fonts move behind a
-  Node-only entry so the main entry loads in a worker.
+- **Browser rendering** (done in the composer): the main entry loads in a worker, since the
+  Node font loader is a lazy import and fonts can arrive as bytes; the `./fonts/*` export serves
+  the bundled Inter files to a bundler. A documented browser entry for hosts is still to come;
+  `apps/composer/src/preview` is the reference.
 
 ## Security and metadata hardening
 

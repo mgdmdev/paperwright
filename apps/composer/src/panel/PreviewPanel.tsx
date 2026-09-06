@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { validateModel } from '@paperwright/model';
 import { useAssets } from '../assets';
 import { PdfPages } from '../PdfPages';
+import { LocalRenderer } from '../preview/local';
 import { usePuckStore } from '../puck';
 import { requestRender } from '../render-client';
 import type { Issue } from '../render-client';
@@ -15,6 +16,8 @@ const isOpen = (ui: { leftSideBarVisible: boolean; plugin: { current: string | n
  * The plugin panel: what the current canvas renders to, as a real PDF, plus the issues and
  * warnings the model and renderer report. Re-renders after edits settle, while the panel is open.
  */
+const local = new LocalRenderer();
+
 export function PreviewPanel() {
   const assets = useAssets();
   const data = usePuckStore((s) => s.appState.data);
@@ -58,7 +61,15 @@ export function PreviewPanel() {
       inFlight.current = controller;
       setStatus('rendering…');
       try {
-        const outcome = await requestRender({ model, data: sample }, controller.signal);
+        // The browser renders when it can; the dev API is the fallback the first time it cannot.
+        const where = local.unavailable ? 'server' : 'browser';
+        const outcome = await (where === 'browser'
+          ? local.render(model, sample as Record<string, unknown>, controller.signal).catch(async (e: unknown) => {
+              if ((e as Error).name === 'AbortError') throw e;
+              console.warn('paperwright: the browser renderer failed, rendering on the server instead', e);
+              return requestRender({ model, data: sample }, controller.signal);
+            })
+          : requestRender({ model, data: sample }, controller.signal));
         if (controller.signal.aborted) return;
         if (!outcome.ok) {
           setIssues(outcome.issues);
@@ -68,7 +79,7 @@ export function PreviewPanel() {
         setPdf(outcome.bytes);
         setIssues([]);
         setWarnings(outcome.warnings);
-        setStatus(`${Math.round(outcome.bytes.byteLength / 1024)} KB in ${outcome.renderMs} ms`);
+        setStatus(`${Math.round(outcome.bytes.byteLength / 1024)} KB in ${outcome.renderMs} ms, ${'where' in outcome ? 'in the browser' : 'on the server'}`);
       } catch (e) {
         if ((e as Error).name !== 'AbortError') setStatus(`render failed: ${e}`);
       }

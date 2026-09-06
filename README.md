@@ -18,9 +18,9 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 |---|---|
 | [`@paperwright/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver. No React, no engine. |
 | [`@paperwright/pdf`](packages/pdf) | Renders a model to PDF through Forme, with a component layer adapted from [pdfcn](https://github.com/shadcn-labs/pdfcn), two themes and the Inter font. |
-| [`@paperwright/ai`](packages/ai) | Prompt to template, sample data and edit-by-instruction through any language model, with a validate-and-repair loop. Keys stay with the host. |
+| [`@paperwright/ai`](packages/ai) | Prompt to template, sample data and edit-by-instruction through any language model, with a validate-and-repair loop and a block-level diff of what an edit changed. Keys stay with the host. |
 | [`examples/basic`](examples/basic) | Four JSON templates (invoice, letter, payslip, certificate) with data, rendered by `pnpm examples`. |
-| [`apps/composer`](apps/composer) | The drag-and-drop template composer (v0.2 on Puck): blocks palette, page canvas with bindings shown as chips, property panels, variable picker, live PDF panel, your own templates and images, and an AI dialog. `pnpm composer`. |
+| [`apps/composer`](apps/composer) | The drag-and-drop template composer (v0.2 on Puck): blocks palette, page canvas with bindings shown as chips, property panels, variable picker, a PDF panel rendered in the browser, your own templates (on the dev server or in the browser) and images, and an AI dialog. `pnpm composer`. |
 | [`apps/playground`](apps/playground) | A local page to try templates as JSON: edit the template and data, see the PDF re-render as you type. `pnpm playground`. |
 
 ## Development

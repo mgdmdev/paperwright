@@ -17,10 +17,13 @@ export function PdfPages({ bytes }: { bytes: ArrayBuffer | null }) {
     if (!el) return;
     // A scrollbar appearing after pages are drawn nudges the width by a few pixels; refitting for
     // that would redraw, move the scrollbar, and loop. Only a real resize refits.
-    const observer = new ResizeObserver(([entry]) => {
-      const w = Math.floor(entry?.contentRect.width ?? 0);
+    const fit = () => {
+      const w = el.clientWidth;
       if (w > 0) setWidth((prev) => (Math.abs(w - prev) > 8 ? w : prev));
-    });
+    };
+    // Observers only report while the tab is painting; measure now so a background tab still fits.
+    fit();
+    const observer = new ResizeObserver(fit);
     observer.observe(el);
     return () => observer.disconnect();
   }, []);

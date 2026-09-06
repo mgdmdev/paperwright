@@ -5,3 +5,5 @@ export type { GenerateOptions, GenerateResult, EditOptions, SampleDataOptions, S
 export { templateJsonSchema, AUTHORING_GUIDE } from './guide';
 export { extractJson } from './json';
 export { dataPaths } from './paths';
+export { diffTemplates, describeDiff } from './diff';
+export type { TemplateDiff } from './diff';

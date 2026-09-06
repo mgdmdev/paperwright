@@ -6,7 +6,7 @@ interface Props {
   onClose: () => void;
   /** The template on the canvas, for the edit mode. */
   current: { model: DocumentModel; sampleData: unknown } | null;
-  onGenerated: (model: DocumentModel, sampleData: unknown, note: string) => void;
+  onGenerated: (model: DocumentModel, sampleData: unknown, note: string) => void | Promise<void>;
 }
 
 type Mode = 'new' | 'edit';
@@ -55,7 +55,7 @@ export function AiDialog({ open, onClose, current, onGenerated }: Props) {
         setError(body.error ? `${body.error}${body.repairs ? ` (after ${body.repairs.length} repair rounds)` : ''}` : `failed (${res.status})`);
         return;
       }
-      onGenerated(body.model, mode === 'new' ? body.sampleData : current?.sampleData, `${mode === 'new' ? 'Generated' : 'Edited'} in ${body.attempts} round${body.attempts === 1 ? '' : 's'}`);
+      await onGenerated(body.model, mode === 'new' ? body.sampleData : current?.sampleData, `${mode === 'new' ? 'Generated' : 'Edited'} in ${body.attempts} round${body.attempts === 1 ? '' : 's'}`);
       setText('');
       onClose();
     } catch (e) {

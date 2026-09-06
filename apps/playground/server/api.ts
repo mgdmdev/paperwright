@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
@@ -18,6 +18,8 @@ import type { AssetHint, LlmClient } from '@paperwright/ai';
  * POST /api/assets        → { name, mime, base64 } → { hash, mime }; stored under uploadsDir
  * POST /api/render        → { model, data, theme?, themeOverrides?, locale? }
  *                           → { pdf: base64, warnings, renderMs }, or 400 { issues } / { error }
+ * HEAD/GET /api/templates → the templates kept under templatesDir, as { id, name, model, sampleData, updatedAt }
+ * GET/PUT/DELETE /api/templates/<id>
  * GET  /api/ai            → { configured, client }
  * POST /api/ai/template   → { prompt, sampleData?, locale?, assets? } → { model, sampleData, attempts }
  * POST /api/ai/edit       → { model, instruction, sampleData? } → { model, attempts }
@@ -49,7 +51,9 @@ const aiClient = (): LlmClient | null => {
   return null;
 };
 
-export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/;
+
+export function playgroundApi(examplesDir: string, uploadsDir: string, templatesDir = path.join(path.dirname(uploadsDir), 'templates')): Plugin {
   const assets = new Map<string, { bytes: Uint8Array; mime: AssetMime }>();
 
   const loadDir = async (dir: string) => {
@@ -254,6 +258,49 @@ export function playgroundApi(examplesDir: string, uploadsDir: string): Plugin {
           return suggestSampleData({ client, model: current.model, hint: typeof body.hint === 'string' ? body.hint.slice(0, 2000) : undefined });
         }),
       ));
+      server.middlewares.use('/api/templates', safe(async (req, res) => {
+        const id = decodeURIComponent((req.url ?? '').replace(/^\//, '').split('?')[0] ?? '');
+        if (id && !SAFE_ID.test(id)) return json(res, 400, { error: 'Template ids are letters, digits, dot, dash and underscore' });
+        const file = (i: string) => path.join(templatesDir, `${i}.json`);
+        const readEntry = async (i: string) => {
+          try {
+            return JSON.parse(await readFile(file(i), 'utf8')) as Record<string, unknown>;
+          } catch {
+            return undefined;
+          }
+        };
+        if (req.method === 'HEAD') {
+          res.statusCode = 200;
+          res.end();
+          return;
+        }
+        if (req.method === 'GET' && !id) {
+          await mkdir(templatesDir, { recursive: true });
+          const names = (await readdir(templatesDir)).filter((f) => f.endsWith('.json'));
+          const entries = (await Promise.all(names.map((f) => readEntry(f.replace(/\.json$/, ''))))).filter((e): e is Record<string, unknown> => !!e);
+          entries.sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')));
+          return json(res, 200, entries);
+        }
+        if (req.method === 'GET') {
+          const entry = await readEntry(id);
+          return entry ? json(res, 200, entry) : json(res, 404, { error: `no template ${id}` });
+        }
+        if (req.method === 'PUT' && id) {
+          const body = await readObject(req, res);
+          if (!body) return;
+          const validated = validateModel(body.model);
+          if (!validated.ok) return json(res, 400, { error: 'The template is invalid', issues: validated.issues });
+          const entry = { id, name: typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 200) : validated.model.name, model: validated.model, sampleData: body.sampleData ?? {}, updatedAt: new Date().toISOString() };
+          await mkdir(templatesDir, { recursive: true });
+          await writeFile(file(id), JSON.stringify(entry, null, 2));
+          return json(res, 200, entry);
+        }
+        if (req.method === 'DELETE' && id) {
+          await rm(file(id), { force: true });
+          return json(res, 200, { ok: true });
+        }
+        json(res, 405, { error: 'Unsupported' });
+      }));
       server.middlewares.use('/api/ai', safe((_req, res) => {
         const client = aiClient();
         json(res, 200, { configured: !!client, client: client?.name ?? null });

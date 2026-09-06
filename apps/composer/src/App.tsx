@@ -7,8 +7,11 @@ import { AiDialog } from './AiDialog';
 import { assetStore, useAssets } from './assets';
 import { createConfig } from './config';
 import type { CanvasMetadata } from './config';
+import { describeDiff, diffTemplates } from '@paperwright/ai';
 import { blankModel, library } from './library';
 import type { LibraryEntry } from './library';
+import { chooseStore } from './store';
+import type { TemplateStore } from './store';
 import { PreviewPanel } from './panel/PreviewPanel';
 import type { ComposerData } from './puck';
 import { dataToModel, modelToData } from './transform';
@@ -40,7 +43,8 @@ export function App() {
   const [themes, setThemes] = useState<CanvasMetadata['themes'] | null>(null);
   const [current, setCurrent] = useState<Current | null>(null);
   const [data, setData] = useState<ComposerData | null>(null);
-  const [mine, setMine] = useState<LibraryEntry[]>(() => library.list());
+  const [store, setStore] = useState<TemplateStore | null>(null);
+  const [mine, setMine] = useState<LibraryEntry[]>([]);
   const [key, setKey] = useState(0);
   const [notice, setNotice] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
@@ -52,16 +56,21 @@ export function App() {
   const latest = useRef<ComposerData | null>(null);
 
   useEffect(() => {
-    Promise.all([fetch('/api/examples').then((r) => r.json() as Promise<Examples>), fetch('/api/themes').then((r) => r.json() as Promise<CanvasMetadata['themes']>)]).then(([ex, th]) => {
+    Promise.all([fetch('/api/examples').then((r) => r.json() as Promise<Examples>), fetch('/api/themes').then((r) => r.json() as Promise<CanvasMetadata['themes']>), chooseStore()]).then(async ([ex, th, st]) => {
       setExamples(ex);
       setThemes(th);
+      setStore(st);
       assetStore.set(ex.assets);
-      const last = library.list()[0];
+      const entries = await st.list();
+      setMine(entries);
+      const last = entries[0];
       if (last) openMine(last);
       else openExample(ex, ex.names.includes('invoice') ? 'invoice' : ex.names[0]!);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const refresh = async (st: TemplateStore) => setMine(await st.list());
 
   const mount = (c: Current, model: DocumentModel, sampleData: unknown) => {
     // A save still waiting for the previous template must not fire against this one.
@@ -87,7 +96,8 @@ export function App() {
   };
 
   const persist = useCallback(
-    (c: Current, d: ComposerData) => {
+    async (c: Current, d: ComposerData) => {
+      if (!store) throw new Error('no store yet');
       const model = dataToModel(d, assetStore.get(), c.id);
       let sampleData: unknown = {};
       try {
@@ -95,11 +105,11 @@ export function App() {
       } catch {
         sampleData = d.root.props?.sampleData ?? '{}';
       }
-      const saved = library.save({ id: c.id, name: model.name, model, sampleData });
-      setMine(library.list());
+      const saved = await store.save({ id: c.id, name: model.name, model, sampleData });
+      await refresh(store);
       return saved;
     },
-    [],
+    [store],
   );
 
   /** Edits to an example fork it into the library; edits to a library entry save in place. */
@@ -109,8 +119,7 @@ export function App() {
     if (current.source === 'example') {
       const forked: Current = { id: library.newId(), name: current.name, source: 'mine' };
       setCurrent(forked);
-      persist(forked, d);
-      setNotice(`Saved as your own copy of "${current.name}"`);
+      void persist(forked, d).then(() => setNotice(`Saved as your own copy of "${current.name}" in ${store?.name ?? 'this browser'}`), (e) => setNotice(`Could not save: ${e instanceof Error ? e.message : String(e)}`));
       return;
     }
     pending.current = { c: current, d };
@@ -119,16 +128,19 @@ export function App() {
       const job = pending.current;
       pending.current = null;
       if (!job) return;
-      const saved = persist(job.c, job.d);
-      setCurrent((now) => (now && now.id === job.c.id && now.name !== saved.name ? { ...now, name: saved.name } : now));
+      void persist(job.c, job.d).then(
+        (saved) => setCurrent((now) => (now && now.id === job.c.id && now.name !== saved.name ? { ...now, name: saved.name } : now)),
+        (e) => setNotice(`Could not save: ${e instanceof Error ? e.message : String(e)}`),
+      );
     }, 800);
   };
 
-  const newBlank = () => {
+  const newBlank = async () => {
+    if (!store) return;
     const id = library.newId();
     const model = blankModel(id);
-    library.save({ id, name: model.name, model, sampleData: {} });
-    setMine(library.list());
+    await store.save({ id, name: model.name, model, sampleData: {} });
+    await refresh(store);
     mount({ id, name: model.name, source: 'mine' }, model, {});
   };
 
@@ -140,8 +152,9 @@ export function App() {
       const sampleData = 'data' in parsed && parsed.template ? parsed.data : {};
       const model = migrateModel(raw);
       const id = library.newId();
-      library.save({ id, name: model.name, model, sampleData });
-      setMine(library.list());
+      if (!store) return;
+      await store.save({ id, name: model.name, model, sampleData });
+      await refresh(store);
       mount({ id, name: model.name, source: 'mine' }, model, sampleData);
       setNotice(`Opened ${file.name}`);
     } catch (e) {
@@ -151,33 +164,36 @@ export function App() {
     }
   };
 
-  const duplicate = () => {
-    if (!current || !latest.current && current.source !== 'mine') return;
+  const duplicate = async () => {
+    if (!current) return;
     const d = latest.current ?? data;
     if (!d) return;
     const id = library.newId();
-    const entry = persist({ id, name: `${current.name} (copy)`, source: 'mine' }, { ...d, root: { ...d.root, props: { ...d.root.props!, name: `${current.name} (copy)` } } });
+    const entry = await persist({ id, name: `${current.name} (copy)`, source: 'mine' }, { ...d, root: { ...d.root, props: { ...d.root.props!, name: `${current.name} (copy)` } } });
     openMine(entry);
   };
 
-  const remove = () => {
-    if (!current || current.source !== 'mine') return;
+  const remove = async () => {
+    if (!current || current.source !== 'mine' || !store) return;
     window.clearTimeout(saveTimer.current);
     pending.current = null;
-    library.remove(current.id);
-    setMine(library.list());
-    const next = library.list()[0];
+    await store.remove(current.id);
+    const entries = await store.list();
+    setMine(entries);
+    const next = entries[0];
     if (next) openMine(next);
     else if (examples) openExample(examples, examples.names[0]!);
   };
 
-  /** A generated or rewritten template lands in the library as its own entry. */
-  const adopt = (model: DocumentModel, sampleData: unknown, note: string) => {
+  /** A generated or rewritten template lands in the library as its own entry, with what changed. */
+  const adopt = async (model: DocumentModel, sampleData: unknown, note: string) => {
+    if (!store) return;
+    const before = currentForAi()?.model;
     const id = library.newId();
-    library.save({ id, name: model.name, model: { ...model, id }, sampleData: sampleData ?? {} });
-    setMine(library.list());
+    await store.save({ id, name: model.name, model: { ...model, id }, sampleData: sampleData ?? {} });
+    await refresh(store);
     mount({ id, name: model.name, source: 'mine' }, { ...model, id }, sampleData ?? {});
-    setNotice(note);
+    setNotice(before && note.startsWith('Edited') ? `${note}: ${describeDiff(diffTemplates(before, model))}` : note);
   };
 
   const currentForAi = () => {
@@ -230,13 +246,10 @@ export function App() {
                   const [source, ...rest] = e.target.value.split(':');
                   const id = rest.join(':');
                   if (source === 'example') openExample(examples, id);
-                  else {
-                    const entry = library.get(id);
-                    if (entry) openMine(entry);
-                  }
+                  else void store?.get(id).then((entry) => entry && openMine(entry));
                 }}
               >
-                <optgroup label="My templates">
+                <optgroup label={`My templates (${store?.name ?? '…'})`}>
                   {mine.length === 0 ? <option disabled>none yet</option> : null}
                   {mine.map((t) => (
                     <option key={t.id} value={`mine:${t.id}`}>
@@ -252,12 +265,12 @@ export function App() {
                   ))}
                 </optgroup>
               </select>
-              <button type="button" onClick={newBlank}>New</button>
+              <button type="button" onClick={() => void newBlank()}>New</button>
               <button type="button" onClick={() => fileInput.current?.click()}>Open…</button>
-              <button type="button" onClick={duplicate}>Duplicate</button>
+              <button type="button" onClick={() => void duplicate()}>Duplicate</button>
               <button type="button" onClick={() => setAiOpen(true)}>AI…</button>
               {current.source === 'mine' ? (
-                <button type="button" className="pw-danger" onClick={remove}>Delete</button>
+                <button type="button" className="pw-danger" onClick={() => void remove()}>Delete</button>
               ) : null}
               <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => void openFile(e.currentTarget.files?.[0])} />
               {notice ? <span className="pw-notice">{notice}</span> : null}
