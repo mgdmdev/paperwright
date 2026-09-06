@@ -1,10 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`renderPdf > renders the certificate example without warnings and matches its golden text 1`] = `
+{
+  "pages": 1,
+  "text": [
+    "Certificate of Completion | This is to certify that | Abena Osei | has successfully completed | Workplace Health and Safety | (12 hours of instruction) on 30 August 2026. | Final assessment: 92% | Signature | A. Owusu | Managing Director | Signature | Dr K. Asante | Head of Training | 30 Aug 2026 | Verify this certificate at https://verify.northwind.example/c/NWA-2026-01187 | Certificate number NWA-2026-01187, issued 1 September 2026. | Northwind Academy · 12 Harbour Lane, Tema · Certificate NWA-2026-01187",
+  ],
+  "title": "Certificate of Completion",
+}
+`;
+
 exports[`renderPdf > renders the invoice example without warnings and matches its golden text 1`] = `
 {
   "pages": 2,
   "text": [
-    "Invoice INV-2026-0142 | Northwind Studio | · 12 Harbour Lane, Tema · billing@northwind.example | Bill to | Blue Meridian Ltd | Issued | 1 September 2026 | Due | 1 October 2026 | Purchase order | none | # | Description | Qty | Unit price | Amount | 1 | Brand identity system | 1 | GHS 9,500.00 | GHS 9,500.00 | 2 | Website design, 6 templates | 6 | GHS 1,100.00 | GHS 6,600.00 | 3 | Photography day rate | 2 | GHS 820.00 | GHS 1,640.00 | 4 | Print production supervision | 1 | GHS 500.00 | GHS 500.00 | Subtotal | GHS 18,240.00 | VAT (15.0%) | GHS 2,736.00 | Total due | GHS 20,976.00 | Notes | Thank you for your business. Late payments accrue 2% per month. | Payment | Bank: First Atlantic Bank | Account: 0012 3456 7890 | Reference: INV-2026-0142 | Page 1 of 2",
+    "Invoice INV-2026-0142 | Northwind Studio | · 12 Harbour Lane, Tema · billing@northwind.example | Bill to | Blue Meridian Ltd | Issued | 1 September 2026 | Due | 1 October 2026 | Purchase order | none | # | Description | Qty | Unit price | Amount | 1 | Brand identity system | 1 | GHS 9,500.00 | GHS 9,500.00 | 2 | Website design, 6 templates | 6 | GHS 1,100.00 | GHS 6,600.00 | 3 | Photography day rate | 2 | GHS 820.00 | GHS 1,640.00 | 4 | Print production supervision | 1 | GHS 500.00 | GHS 500.00 | Subtotal | GHS 18,240.00 | VAT (15.0%) | GHS 2,736.00 | Total due | GHS 20,976.00 | Notes | Thank you for your business. Late payments accrue 2% per month. | Payment | Bank: | First Atlantic Bank | Account: 0012 3456 7890 | Reference: INV-2026-0142 | Page 1 of 2",
     "Signature | A. Owusu | For Northwind Studio | 1 Sept 2026 | Page 2 of 2",
   ],
   "title": "Invoice",

@@ -6,7 +6,7 @@ import type { DocumentModel, RenderData } from '@paperwright/model';
 
 const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../examples/basic');
 
-export const EXAMPLE_NAMES = ['invoice', 'letter', 'payslip'] as const;
+export const EXAMPLE_NAMES = ['invoice', 'letter', 'payslip', 'certificate'] as const;
 
 export async function loadExample(name: (typeof EXAMPLE_NAMES)[number]): Promise<{
   model: DocumentModel;

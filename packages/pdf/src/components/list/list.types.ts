@@ -1,4 +1,5 @@
 import type { Style } from "@formepdf/react";
+import type { ReactNode } from "react";
 
 /** List visual style variant. */
 export type ListVariant =
@@ -15,7 +16,8 @@ export type ListVariant =
  * @see {@link ListItem}
  */
 export interface ListItem {
-  text: string;
+  /** Plain text, or formatted runs (Text, Strong, Link) — every variant renders it inside a Text. */
+  text: ReactNode;
   description?: string;
   checked?: boolean;
   children?: ListItem[];

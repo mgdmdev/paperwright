@@ -26,11 +26,46 @@ export interface CompileContext {
   warnings: string[];
 }
 
-export function themeFor(name: string | undefined, fontFamily: string | undefined, warnings: string[]): PdfcnTheme {
-  const preset = (name ?? 'professional') as ThemePresetName;
-  let theme: PdfcnTheme = themePresets[preset] ?? themePresets.professional;
-  if (!themePresets[preset]) warnings.push(`Unknown theme "${name}"; using professional`);
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+
+/** Any subset of a theme: a host's brand colours, a font family, wider margins. */
+export type ThemeOverrides = DeepPartial<PdfcnTheme>;
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Deep-merges overrides onto a theme; arrays and primitives replace, objects merge. */
+export function mergeTheme(base: PdfcnTheme, overrides: ThemeOverrides): PdfcnTheme {
+  const merge = (a: unknown, b: unknown): unknown => {
+    if (!isPlainObject(a) || !isPlainObject(b)) return b === undefined ? a : b;
+    const out: Record<string, unknown> = { ...a };
+    for (const [k, v] of Object.entries(b)) out[k] = merge(a[k], v);
+    return out;
+  };
+  return merge(base, overrides) as PdfcnTheme;
+}
+
+/**
+ * Picks the theme for a render: a preset name or a theme object (the option wins over the model),
+ * the registered font family applied to every typography slot, then the host's overrides on top
+ * so a family named there wins.
+ */
+export function themeFor(
+  selection: string | PdfcnTheme | undefined,
+  fontFamily: string | undefined,
+  warnings: string[],
+  overrides?: ThemeOverrides,
+): PdfcnTheme {
+  let theme: PdfcnTheme;
+  if (selection && typeof selection === 'object') {
+    theme = selection;
+  } else {
+    const preset = (selection ?? 'professional') as ThemePresetName;
+    theme = themePresets[preset] ?? themePresets.professional;
+    if (!themePresets[preset]) warnings.push(`Unknown theme "${selection}"; using professional`);
+  }
   if (fontFamily) theme = withFontFamily(theme, fontFamily);
+  if (overrides) theme = mergeTheme(theme, overrides);
   return theme;
 }
 
@@ -54,12 +89,13 @@ export function compileBlocks(blocks: ResolvedBlock[], ctx: CompileContext): Rea
 }
 
 const ALIGN_ITEMS = { left: 'flex-start', center: 'center', right: 'flex-end' } as const;
+const ALIGN_COLUMNS = { top: 'flex-start', middle: 'center', bottom: 'flex-end' } as const;
 
 function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
   switch (block.type) {
     case 'heading':
       return (
-        <Heading key={block.id} level={block.level} keepWithNext={block.keepWithNext}>
+        <Heading key={block.id} level={block.level} align={block.align} keepWithNext={block.keepWithNext}>
           {block.text as string}
         </Heading>
       );
@@ -92,14 +128,7 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
     case 'keyValue':
       return <KeyValue key={block.id} items={block.items.map((i) => ({ key: i.key as string, value: i.value as string }))} />;
     case 'list':
-      // The list component takes plain strings per item; span formatting is dropped here.
-      return (
-        <PdfList
-          key={block.id}
-          variant={block.variant}
-          items={block.items.map((item) => ({ text: item.spans.map((s) => s.text as string).join('') }))}
-        />
-      );
+      return <PdfList key={block.id} variant={block.variant} items={block.items.map((item) => ({ text: compileSpans(item.spans) }))} />;
     case 'table':
       return compileTable(block, ctx);
     case 'section':
@@ -117,6 +146,30 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
       );
     case 'keepTogether':
       return <KeepTogether key={block.id}>{compileBlocks(block.blocks as ResolvedBlock[], ctx)}</KeepTogether>;
+    case 'pageBreak':
+      return <Forme.PageBreak key={block.id} />;
+    case 'columns': {
+      const fractions = columnFractions(
+        block.columns.map((c) => ({ key: '', header: '', width: c.width })),
+        (m) => ctx.warnings.push(`Block "${block.id}": ${m}`),
+      );
+      return (
+        <View
+          key={block.id}
+          style={{
+            flexDirection: 'row',
+            gap: block.gap ?? ctx.theme.spacing.sectionGap,
+            alignItems: ALIGN_COLUMNS[block.align ?? 'top'],
+          }}
+        >
+          {block.columns.map((column, i) => (
+            <View key={i} style={{ flexGrow: fractions[i], flexBasis: 0 }}>
+              {compileBlocks(column.blocks as ResolvedBlock[], ctx)}
+            </View>
+          ))}
+        </View>
+      );
+    }
     case 'signature': {
       const src = block.assetHash ? ctx.assetSrc(block.assetHash) : undefined;
       if (block.assetHash && !src) ctx.warnings.push(`Block "${block.id}": no bytes for signature asset ${block.assetHash}`);

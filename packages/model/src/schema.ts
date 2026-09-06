@@ -58,7 +58,7 @@ const base = { id: z.string().min(1) };
 
 export const blockSchema: z.ZodType<Block> = z.lazy(() =>
   z.discriminatedUnion('type', [
-    z.object({ ...base, type: z.literal('heading'), level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]), text: bindingOrString, keepWithNext: z.boolean().optional() }),
+    z.object({ ...base, type: z.literal('heading'), level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]), text: bindingOrString, align: align.optional(), keepWithNext: z.boolean().optional() }),
     z.object({ ...base, type: z.literal('text'), rich: richTextSchema }),
     z.object({ ...base, type: z.literal('divider'), variant: z.enum(['solid', 'dashed']).optional() }),
     z.object({ ...base, type: z.literal('image'), assetHash: z.string().min(1), width: z.number().positive().optional(), height: z.number().positive().optional(), fit: z.enum(['contain', 'cover']).optional(), align: align.optional(), caption: bindingOrString.optional() }),
@@ -71,6 +71,8 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({ ...base, type: z.literal('repeat'), forEach: z.string().min(1), as: z.string().min(1), blocks: z.array(blockSchema) }),
     z.object({ ...base, type: z.literal('if'), test: bindingSchema, then: z.array(blockSchema), else: z.array(blockSchema).optional() }),
     z.object({ ...base, type: z.literal('keepTogether'), blocks: z.array(blockSchema) }),
+    z.object({ ...base, type: z.literal('pageBreak') }),
+    z.object({ ...base, type: z.literal('columns'), columns: z.array(z.object({ width: z.number().positive().max(1).optional(), blocks: z.array(blockSchema) })).min(1).refine(widthsFit, WIDTHS_MESSAGE), gap: z.number().min(0).optional(), align: z.enum(['top', 'middle', 'bottom']).optional() }),
     z.object({ ...base, type: z.literal('signature'), assetHash: z.string().optional(), signer: z.object({ name: bindingOrString.optional(), title: bindingOrString.optional(), date: bindingOrString.optional() }), variant: z.enum(['single', 'inline']).optional() }),
     z.object({ ...base, type: z.literal('watermark'), text: bindingOrString, opacity: z.number().min(0).max(1).optional() }),
     z.object({ ...base, type: z.literal('pageNumber'), format: z.string().optional(), align: align.optional() }),
@@ -135,6 +137,7 @@ export function validateModel(input: unknown): ValidationResult {
         issues.push({ path: `${here}.assetHash`, message: `No asset "${block.assetHash}"` });
       }
       if (block.type === 'section' || block.type === 'keepTogether' || block.type === 'repeat') walk(block.blocks, `${here}.blocks`);
+      if (block.type === 'columns') block.columns.forEach((c, j) => walk(c.blocks, `${here}.columns.${j}.blocks`));
       if (block.type === 'if') {
         walk(block.then, `${here}.then`);
         if (block.else) walk(block.else, `${here}.else`);

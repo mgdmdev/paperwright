@@ -18,7 +18,7 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 |---|---|
 | [`@paperwright/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver. No React, no engine. |
 | [`@paperwright/pdf`](packages/pdf) | Renders a model to PDF through Forme, with the component layer (built on [pdfcn](https://github.com/shadcn-labs/pdfcn)), two themes and the Inter font. |
-| [`examples/basic`](examples/basic) | Three JSON templates (invoice, letter, payslip) with data, rendered by `pnpm examples`. |
+| [`examples/basic`](examples/basic) | Four JSON templates (invoice, letter, payslip, certificate) with data, rendered by `pnpm examples`. |
 
 ## Development
 
@@ -26,7 +26,7 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 pnpm install
 pnpm build        # both packages, in dependency order (tsup, with declarations)
 pnpm test         # builds, then vitest across packages
-pnpm examples     # renders examples/basic/templates/*.json into examples/basic/out
+pnpm examples     # renders the four example templates into examples/basic/out
 pnpm typecheck
 ```
 
@@ -38,3 +38,7 @@ after editing `@paperwright/model`.
 MIT. The component layer under `packages/pdf/src/{components,lib,themes,types}` is vendored from
 pdfcn (MIT, see `NOTICE`). Inter is shipped under the SIL Open Font License
 (`packages/pdf/fonts/LICENSE-Inter.txt`).
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md).

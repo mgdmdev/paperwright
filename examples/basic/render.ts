@@ -5,7 +5,7 @@ import { migrateModel } from '@paperwright/model';
 import { renderPdf } from '@paperwright/pdf';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const names = process.argv.slice(2).length ? process.argv.slice(2) : ['invoice', 'letter', 'payslip'];
+const names = process.argv.slice(2).length ? process.argv.slice(2) : ['invoice', 'letter', 'payslip', 'certificate'];
 
 const logo = new Uint8Array(await readFile(path.join(here, 'assets/logo.png')));
 const logoHash = (await readFile(path.join(here, 'assets/logo.hash'), 'utf8')).trim();

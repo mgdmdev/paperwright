@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderPdf } from '../src/index';
+import { renderPdf, themePresets } from '../src/index';
 import { EXAMPLE_NAMES, loadExample } from './examples';
 import { summarizePdf } from './pdf-text';
 
@@ -45,6 +45,20 @@ describe('renderPdf', () => {
     const input = await loadExample('invoice');
     const summary = await summarizePdf((await renderPdf({ ...input, locale: 'fr-FR' })).bytes);
     expect(summary.text[0]).toContain('1 septembre 2026');
+  });
+
+  it('takes a theme name, a theme object and brand overrides from the options', async () => {
+    const input = await loadExample('letter');
+    const byName = await renderPdf(input, { theme: 'minimal' });
+    expect(byName.warnings).toEqual([]);
+    const brand = { ...themePresets.professional, colors: { ...themePresets.professional.colors, primary: '#7a1f1f' } };
+    const byObject = await renderPdf({ ...input, model: { ...input.model, theme: 'nonsense' } }, { theme: brand });
+    expect(byObject.warnings).toEqual([]);
+    const overridden = await renderPdf(input, {
+      themeOverrides: { colors: { primary: '#7a1f1f' }, spacing: { page: { marginTop: 96 } } },
+    });
+    expect(overridden.warnings).toEqual([]);
+    expect((await summarizePdf(overridden.bytes)).text[0]).toContain('Renewal of the design retainer');
   });
 
   it('falls back to the professional theme with a warning for an unknown theme name', async () => {

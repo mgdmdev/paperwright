@@ -28,9 +28,10 @@ rendering engine, so it runs anywhere: a server, a browser, a worker.
 ```
 
 Units are PDF points. Block types: `heading`, `text` (rich spans), `divider`, `image`, `qrcode`,
-`keyValue`, `list`, `table`, `dataTable`, `section`, `repeat`, `if`, `keepTogether`, `signature`
-(a signing line, with a stored signature image above it when `assetHash` is set), `watermark`,
-`pageNumber`. Assets travel by content hash; the bytes are supplied at render time.
+`keyValue`, `list`, `table`, `dataTable`, `section`, `columns` (blocks side by side), `repeat`,
+`if`, `keepTogether`, `pageBreak`, `signature` (a signing line, with a stored signature image
+above it when `assetHash` is set), `watermark`, `pageNumber`. Assets travel by content hash; the
+bytes are supplied at render time.
 
 ## Bindings
 

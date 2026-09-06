@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "certificate",
+  "name": "Certificate of Completion",
+  "locale": "en-GB",
+  "theme": "professional",
+  "page": { "size": "A4", "orientation": "landscape", "margins": { "top": 64, "right": 80, "bottom": 56, "left": 80 } },
+  "assets": [{ "hash": "72480c0b68060af1", "mime": "image/png", "width": 96, "height": 32 }],
+  "footer": [
+    { "id": "ftr", "type": "text", "rich": { "align": "center", "spans": [
+      { "text": "{{ issuer.name }} · {{ issuer.address }} · Certificate {{ certificate.number }}" }
+    ] } }
+  ],
+  "blocks": [
+    { "id": "logo", "type": "image", "assetHash": "72480c0b68060af1", "width": 120, "height": 40, "align": "center" },
+    { "id": "title", "type": "heading", "level": 1, "align": "center", "text": "Certificate of Completion" },
+    { "id": "lead", "type": "text", "rich": { "align": "center", "spans": [ { "text": "This is to certify that" } ] } },
+    { "id": "name", "type": "heading", "level": 2, "align": "center", "text": "{{ recipient.name }}" },
+    { "id": "body", "type": "text", "rich": { "align": "center", "spans": [
+      { "text": "has successfully completed " },
+      { "text": "{{ course.title }}", "bold": true },
+      { "text": " ({{ course.hours | number:0 }} hours of instruction) on {{ completion.date | date:long }}." }
+    ] } },
+    { "id": "score", "type": "if", "test": { "var": "completion.score" }, "then": [
+      { "id": "score-text", "type": "text", "rich": { "align": "center", "spans": [
+        { "text": "Final assessment: {{ completion.score | number:0 }}%", "italic": true }
+      ] } }
+    ] },
+    { "id": "signers", "type": "columns", "gap": 96, "align": "bottom", "columns": [
+      { "blocks": [ { "id": "sig-1", "type": "signature", "assetHash": "72480c0b68060af1",
+        "signer": { "name": "{{ signatories.0.name }}", "title": "{{ signatories.0.title }}" } } ] },
+      { "blocks": [ { "id": "sig-2", "type": "signature",
+        "signer": { "name": "{{ signatories.1.name }}", "title": "{{ signatories.1.title }}", "date": "{{ completion.date | date:medium }}" } } ] }
+    ] },
+    { "id": "verify", "type": "columns", "align": "middle", "columns": [
+      { "width": 0.12, "blocks": [ { "id": "qr", "type": "qrcode", "value": "{{ verification.url }}", "size": 56 } ] },
+      { "blocks": [ { "id": "verify-text", "type": "text", "rich": { "spans": [
+        { "text": "Verify this certificate at " }, { "text": "{{ verification.url }}", "link": "{{ verification.url }}", "underline": true },
+        { "text": "\nCertificate number {{ certificate.number }}, issued {{ certificate.issuedOn | date:long }}." }
+      ] } } ] }
+    ] }
+  ]
+}

@@ -2,7 +2,8 @@ import { resolveDocument } from '@paperwright/model';
 import type { RenderInput } from '@paperwright/model';
 import { bundledFonts } from '../fonts';
 import { compileBlocks, themeFor, withTheme } from './compile';
-import type { CompileContext } from './compile';
+import type { CompileContext, ThemeOverrides } from './compile';
+import type { PdfcnTheme } from '../themes/index';
 import type { DocumentEngine, EngineImage, FontFace } from './engine';
 import { createFormeEngine } from './forme';
 import { pageGeometry } from './page';
@@ -18,6 +19,10 @@ export interface RenderPdfOptions {
    * theme's own families (the host must register them).
    */
   fontFamily?: string | null;
+  /** A preset name or a full theme object; wins over the model's `theme`. */
+  theme?: string | PdfcnTheme;
+  /** Deep overrides applied last: a tenant's colours, a font family, spacing. */
+  themeOverrides?: ThemeOverrides;
   metadata?: { title?: string; author?: string; subject?: string; creator?: string; creationDate?: string };
   pdfA?: boolean;
 }
@@ -39,7 +44,7 @@ export async function renderPdf(input: RenderInput, options: RenderPdfOptions = 
 
   const fonts = options.fonts ?? (await bundledFonts());
   const family = options.fontFamily === null ? undefined : (options.fontFamily ?? fonts[0]?.family);
-  const theme = themeFor(input.model.theme, family, warnings);
+  const theme = themeFor(options.theme ?? input.model.theme, family, warnings, options.themeOverrides);
 
   const assetBytes = input.assets ?? new Map<string, Uint8Array>();
   const images: EngineImage[] = [];

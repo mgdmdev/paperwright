@@ -11,7 +11,13 @@ const { bytes, warnings } = await renderPdf({ model, data, assets: new Map([[has
 `renderPdf` resolves the bindings, picks the theme, compiles the blocks to the component tree and
 hands it to the engine. Options: `fonts` (defaults to the bundled Inter faces; Node only, so pass
 your own in a browser), `fontFamily` (every theme typography slot is pointed at it; `null` keeps
-the theme's own families, which you must then register), `metadata`, `pdfA`, `engine`.
+the theme's own families, which you must then register), `theme` (a preset name or a theme
+object, winning over the model's), `themeOverrides` (a deep partial applied last: a tenant's
+colours, a font family, spacing), `metadata`, `pdfA`, `engine`.
+
+```ts
+await renderPdf(input, { themeOverrides: { colors: { primary: '#7a1f1f' }, typography: { heading: { fontFamily: 'Brand Serif' } } }, fonts });
+```
 
 ## Engine
 

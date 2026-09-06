@@ -9,6 +9,11 @@ import * as Forme from "@formepdf/react";
  * first gives it a tree of primitives only, which it handles by identity.
  */
 
+/**
+ * Every primitive Forme's serializer recognises by identity. The set has to be complete: a
+ * primitive missing here would be called as a component and vanish. It is not the list of what
+ * paperwright supports; charts and form fields, for instance, have no block in the model.
+ */
 const FORME_PRIMITIVES = new Set<unknown>([
   Forme.Document, Forme.Page, Forme.View, Forme.Text, Forme.H1, Forme.H2, Forme.H3, Forme.H4, Forme.H5, Forme.H6,
   Forme.OrderedList, Forme.UnorderedList, Forme.ListItem, Forme.Strong, Forme.Em, Forme.Code, Forme.Link, Forme.Image,

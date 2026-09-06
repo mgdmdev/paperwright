@@ -151,8 +151,11 @@ function resolveBlock(block: Block, ctx: Ctx): ResolvedBlock[] {
     case 'text':
       return [{ ...block, rich: resolveRich(ctx, block.rich) }];
     case 'divider':
+    case 'pageBreak':
     case 'pageNumber':
       return [block];
+    case 'columns':
+      return [{ ...block, columns: block.columns.map((c) => ({ ...c, blocks: resolveBlocks(c.blocks, ctx) })) }];
     case 'image': {
       const next = { ...block };
       if (block.caption !== undefined) next.caption = resolveText(ctx, block.caption);
@@ -220,9 +223,12 @@ function isTruthy(value: unknown): boolean {
 /** Ids stay unique across repeat iterations; nested blocks get the same suffix so a builder can trace them back. */
 function suffixId<T extends ResolvedBlock>(block: T, index: number): T {
   const id = `${block.id}:${index}`;
+  // Children of a resolved container are resolved too; the shared type cannot say so.
   if (block.type === 'section' || block.type === 'keepTogether') {
-    // Children of a resolved container are resolved too; the shared type cannot say so.
     return { ...block, id, blocks: (block.blocks as ResolvedBlock[]).map((b) => suffixId(b, index)) };
+  }
+  if (block.type === 'columns') {
+    return { ...block, id, columns: block.columns.map((c) => ({ ...c, blocks: (c.blocks as ResolvedBlock[]).map((b) => suffixId(b, index)) })) };
   }
   return { ...block, id };
 }
@@ -277,6 +283,9 @@ export function listBindings(model: DocumentModel): string[] {
         case 'keepTogether':
           visit(block.blocks);
           break;
+        case 'columns':
+          block.columns.forEach((c) => visit(c.blocks));
+          break;
         case 'repeat':
           found.add(block.forEach);
           visit(block.blocks);
@@ -292,6 +301,7 @@ export function listBindings(model: DocumentModel): string[] {
           visitText(block.signer.date);
           break;
         case 'divider':
+        case 'pageBreak':
         case 'pageNumber':
           break;
       }

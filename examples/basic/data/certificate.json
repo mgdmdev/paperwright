@@ -1,0 +1,12 @@
+{
+  "issuer": { "name": "Northwind Academy", "address": "12 Harbour Lane, Tema" },
+  "recipient": { "name": "Abena Osei" },
+  "course": { "title": "Workplace Health and Safety", "hours": 12 },
+  "completion": { "date": "2026-08-30", "score": 92 },
+  "certificate": { "number": "NWA-2026-01187", "issuedOn": "2026-09-01" },
+  "verification": { "url": "https://verify.northwind.example/c/NWA-2026-01187" },
+  "signatories": [
+    { "name": "A. Owusu", "title": "Managing Director" },
+    { "name": "Dr K. Asante", "title": "Head of Training" }
+  ]
+}

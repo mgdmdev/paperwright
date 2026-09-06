@@ -41,6 +41,21 @@ describe('validateModel', () => {
     expect(result.issues.map((i) => i.message)).toContain('Column widths add up to more than 1');
   });
 
+  it('walks columns for ids and assets, and rejects column widths over 1', () => {
+    const result = validateModel({ ...invoiceModel, blocks: [
+      { id: 'c', type: 'columns', columns: [{ width: 0.7, blocks: [{ id: 'img', type: 'image', assetHash: 'missing' }] }, { width: 0.7, blocks: [] }] },
+    ] });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.map((i) => i.message)).toContain('Column widths add up to more than 1');
+    const ok = validateModel({ ...invoiceModel, blocks: [
+      { id: 'c', type: 'columns', columns: [{ blocks: [{ id: 'img', type: 'image', assetHash: 'missing' }] }, { blocks: [] }] },
+    ] });
+    expect(ok.ok).toBe(false);
+    if (ok.ok) return;
+    expect(ok.issues).toEqual([{ path: 'blocks.0.columns.0.blocks.0.assetHash', message: 'No asset "missing"' }]);
+  });
+
   it('rejects an unknown block type at the schema level', () => {
     const result = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'video' }] });
     expect(result.ok).toBe(false);

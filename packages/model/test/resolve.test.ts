@@ -61,6 +61,33 @@ describe('resolveDocument', () => {
     expect(typo.warnings).toEqual(['No value for "invoice.lnies"', 'No value for "nope"']);
   });
 
+  it('resolves blocks inside columns and keeps repeat suffixes on them', () => {
+    const doc = resolveDocument({
+      model: {
+        ...invoiceModel,
+        blocks: [
+          { id: 'r', type: 'repeat', forEach: 'invoice.payees', as: 'p', blocks: [
+            { id: 'cols', type: 'columns', columns: [
+              { width: 0.5, blocks: [{ id: 'name', type: 'text', rich: { spans: [{ text: '{{ p.name }}' }] } }] },
+              { blocks: [{ id: 'share', type: 'heading', level: 4, align: 'right', text: '{{ p.share | number:0 }}%' }] },
+            ] },
+            { id: 'pb', type: 'pageBreak' },
+          ] },
+        ],
+      },
+      data: invoiceData,
+    });
+    expect(doc.blocks.map((b) => b.id)).toEqual(['cols:0', 'pb:0', 'cols:1', 'pb:1']);
+    expect(doc.blocks[0]).toMatchObject({
+      type: 'columns',
+      columns: [
+        { width: 0.5, blocks: [{ id: 'name:0', rich: { spans: [{ text: 'Kofi' }] } }] },
+        { blocks: [{ id: 'share:0', text: '60%', align: 'right' }] },
+      ],
+    });
+    expect(doc.warnings).toEqual([]);
+  });
+
   it('honours a render-time locale override', () => {
     const fr = resolveDocument({ model: invoiceModel, data: invoiceData, locale: 'fr-FR' });
     const meta = fr.blocks[1];

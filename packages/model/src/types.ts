@@ -67,6 +67,7 @@ export interface HeadingBlock extends BlockBase {
   type: 'heading';
   level: 1 | 2 | 3 | 4 | 5 | 6;
   text: BindingOrString;
+  align?: 'left' | 'center' | 'right';
   keepWithNext?: boolean;
 }
 
@@ -161,6 +162,20 @@ export interface KeepTogetherBlock extends BlockBase {
   blocks: Block[];
 }
 
+export interface PageBreakBlock extends BlockBase {
+  type: 'pageBreak';
+}
+
+/** Blocks laid out side by side: two signers on a certificate, bill-to next to ship-to. */
+export interface ColumnsBlock extends BlockBase {
+  type: 'columns';
+  /** `width` is a fraction of the row; columns without one share what is left. */
+  columns: { width?: number; blocks: Block[] }[];
+  /** Points between columns; defaults to the theme's section gap. */
+  gap?: number;
+  align?: 'top' | 'middle' | 'bottom';
+}
+
 /** A signing line with the signer's details; with an asset, the stored signature is drawn above it. */
 export interface SignatureBlock extends BlockBase {
   type: 'signature';
@@ -196,6 +211,8 @@ export type Block =
   | RepeatBlock
   | IfBlock
   | KeepTogetherBlock
+  | PageBreakBlock
+  | ColumnsBlock
   | SignatureBlock
   | WatermarkBlock
   | PageNumberBlock;

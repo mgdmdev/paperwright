@@ -3,8 +3,8 @@ export { renderPdf } from './render/render';
 export type { RenderPdfOptions, RenderPdfResult } from './render/render';
 export { createFormeEngine } from './render/forme';
 export * from './render/engine';
-export { compileBlocks, withTheme, themeFor, withFontFamily, columnFractions } from './render/compile';
-export type { CompileContext } from './render/compile';
+export { compileBlocks, withTheme, themeFor, withFontFamily, mergeTheme, columnFractions } from './render/compile';
+export type { CompileContext, ThemeOverrides } from './render/compile';
 export { bundledFonts } from './fonts';
 export { pageGeometry, PT_TO_PX } from './render/page';
 
