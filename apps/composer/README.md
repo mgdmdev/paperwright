@@ -1,6 +1,6 @@
 # paperwright composer
 
-The v0.2 spike: a drag-and-drop editor over the document model, built on
+The v0.2 builder: a drag-and-drop editor over the document model, built on
 [Puck](https://puckeditor.com) 0.23.
 
 ```bash

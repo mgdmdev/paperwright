@@ -27,19 +27,24 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 
 ```bash
 pnpm install
-pnpm build        # both packages, in dependency order (tsup, with declarations)
-pnpm test         # builds, then vitest across packages
+pnpm build        # the packages, in dependency order (tsup, with declarations)
+pnpm test         # builds, then vitest across packages and apps
 pnpm examples     # renders the four example templates into examples/basic/out
 pnpm composer     # http://localhost:5181 — drag-and-drop composer with a live PDF panel
 # For the composer's AI dialog, give the dev server a language model:
 #   PAPERWRIGHT_AI_PROVIDER=gemini PAPERWRIGHT_AI_KEY=… PAPERWRIGHT_AI_MODEL=gemini-flash-latest pnpm composer
 #   PAPERWRIGHT_AI_PROVIDER=openai PAPERWRIGHT_AI_KEY=… PAPERWRIGHT_AI_MODEL=gpt-4o-mini [PAPERWRIGHT_AI_BASE_URL=…] pnpm composer
 pnpm playground   # http://localhost:5180 — edit template and data JSON, live PDF preview
-pnpm typecheck
+pnpm typecheck    # every package and app
 ```
 
 Node 22 and pnpm 11. Cross-package imports resolve to each package's `dist`, so run `pnpm build`
 after editing `@paperwright/model`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md): setup, what "supported" means here, the schema rule, and
+how a new block lands.
 
 ## Licence
 

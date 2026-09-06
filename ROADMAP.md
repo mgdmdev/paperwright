@@ -6,7 +6,7 @@ Items arrive when a template needs them, not before; the four example templates 
 letter, payslip, certificate) are the specification, and each new capability lands with a
 template that uses it and a golden test that pins its output.
 
-## Where we are: 0.1
+## Where we are: 0.2
 
 - `@paperwright/model`: types, Zod schema, `{{ var | filter }}` bindings with Intl-backed
   filters, the resolver (repeat, if, dataTable, columns), warnings instead of throws, a
@@ -14,25 +14,30 @@ template that uses it and a golden test that pins its output.
 - `@paperwright/pdf`: Forme engine behind a `DocumentEngine` seam, a component layer adapted
   from pdfcn's Forme base, two themes plus per-render theme objects and overrides,
   fixed header and footer bands, page numbers, repeating table headers, bundled Inter.
-- Golden tests: the text layer of every example, read back through pdf.js.
+- `@paperwright/ai`: prompt to template, sample data and edit by instruction through a
+  provider-neutral client (Gemini and OpenAI-compatible ship), validated and repaired against
+  the model's JSON Schema, and a block-level diff of what an edit changed.
+- `apps/composer`: the drag-and-drop builder on Puck: palette, canvas with bindings as chips,
+  property panels, a variable picker that understands loop-relative paths, image upload by
+  content hash, a PDF panel rendered in the browser (Forme's worker build in a Web Worker, the
+  dev API as the fallback), templates behind a `TemplateStore` (the dev server's file store or
+  the browser), and the AI dialog.
+- `apps/playground`: template and data JSON in, PDF out, on the dev API both apps share.
+- Tests: the text layer of every example read back through pdf.js and pinned as a golden,
+  plus model, AI and composer round-trip tests; 67 in all.
 
 **Schema stability.** Nothing is published yet, so the schema could still change in place.
 From the first npm release the schema is frozen: a removed or renamed field becomes a migration
 step under `version`, never a silent cut. The empty migration list is the seat for that.
 
-## Next: the builder (0.2)
+## The builder: what is left
 
 A drag-and-drop editor over the model. The model is the source of truth and the builder is a
-view of it; nothing the builder can express is outside the schema.
+view of it; nothing the builder can express is outside the schema. The editor exists; these are
+the gaps.
 
-- Done: Puck as the canvas (`apps/composer`), blocks palette, property panels, variable picker
-  with loop-relative paths, image upload, and the AI dialog below.
-- Done: the live PDF panel renders in the browser itself, in a Web Worker running Forme's worker
-  build and the same `renderPdf` as the server; the dev API is the fallback when the worker
-  cannot load.
-- Done: your own templates behind a `TemplateStore` (`apps/composer/src/store.ts`). The composer
-  uses the dev server's file store when one answers, and the browser's storage otherwise; a host
-  implements the same four methods over its own database.
+- Show an AI edit on the canvas: `diffTemplates` already names the blocks that were added,
+  removed, changed or moved; the canvas should highlight them.
 - Template gallery: convert pdfcn's ten invoice and report designs into JSON templates, which is
   also where "starter templates" for a marketplace come from.
 - First consumer cutover: the certificate above replaces PRISM's LMS certificate, then the
