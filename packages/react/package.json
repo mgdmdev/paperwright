@@ -40,5 +40,21 @@
   },
   "peerDependencies": {
     "react": "^19.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgdmdev/paperwright.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/mgdmdev/paperwright/tree/main/packages/react#readme",
+  "bugs": "https://github.com/mgdmdev/paperwright/issues",
+  "keywords": [
+    "pdf",
+    "document",
+    "template",
+    "react",
+    "forme",
+    "takumi",
+    "pdfcn"
+  ]
 }
