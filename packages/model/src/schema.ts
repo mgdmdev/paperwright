@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseTemplate } from './bindings';
 import type { Block, DocumentModel } from './types';
 
 const bindingSchema = z.object({
@@ -13,7 +14,21 @@ const bindingSchema = z.object({
     .optional(),
 });
 
-const bindingOrString = z.union([z.string(), bindingSchema]);
+/** A literal string may carry inline bindings; they are parsed here so an unknown filter fails validation, not the render. */
+const templateString = z.string().superRefine((value, ctx) => {
+  if (!value.includes('{{')) return;
+  try {
+    parseTemplate(value);
+  } catch (error) {
+    ctx.addIssue({ code: 'custom', message: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+const bindingOrString = z.union([templateString, bindingSchema]);
+
+/** Declared widths are fractions of the table; more than the whole table cannot be laid out. */
+const widthsFit = (columns: { width?: number }[]) => columns.reduce((sum, c) => sum + (c.width ?? 0), 0) <= 1.0001;
+const WIDTHS_MESSAGE = 'Column widths add up to more than 1';
 
 const spanSchema = z.object({
   text: bindingOrString,
@@ -50,8 +65,8 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({ ...base, type: z.literal('qrcode'), value: bindingOrString, size: z.number().positive().optional(), align: align.optional() }),
     z.object({ ...base, type: z.literal('keyValue'), items: z.array(z.object({ key: bindingOrString, value: bindingOrString })) }),
     z.object({ ...base, type: z.literal('list'), variant: z.enum(['bullet', 'numbered']), items: z.array(richTextSchema) }),
-    z.object({ ...base, type: z.literal('table'), columns: z.array(tableColumn).min(1), rows: z.array(z.array(bindingOrString)), variant: tableVariant.optional() }),
-    z.object({ ...base, type: z.literal('dataTable'), columns: z.array(tableColumn.extend({ cell: bindingOrString })).min(1), rowBinding: z.string().min(1), variant: tableVariant.optional(), emptyText: bindingOrString.optional() }),
+    z.object({ ...base, type: z.literal('table'), columns: z.array(tableColumn).min(1).refine(widthsFit, WIDTHS_MESSAGE), rows: z.array(z.array(bindingOrString)), variant: tableVariant.optional() }),
+    z.object({ ...base, type: z.literal('dataTable'), columns: z.array(tableColumn.extend({ cell: bindingOrString })).min(1).refine(widthsFit, WIDTHS_MESSAGE), rowBinding: z.string().min(1), variant: tableVariant.optional(), emptyText: bindingOrString.optional() }),
     z.object({ ...base, type: z.literal('section'), title: bindingOrString.optional(), blocks: z.array(blockSchema) }),
     z.object({ ...base, type: z.literal('repeat'), forEach: z.string().min(1), as: z.string().min(1), blocks: z.array(blockSchema) }),
     z.object({ ...base, type: z.literal('if'), test: bindingSchema, then: z.array(blockSchema), else: z.array(blockSchema).optional() }),

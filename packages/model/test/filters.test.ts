@@ -17,6 +17,20 @@ describe('filters', () => {
     expect(applyFilters(1234.5, [{ name: 'currency', args: { code: 'EUR' } }], fr)).toMatch(/1\s234,50\s€/);
   });
 
+  it('prints the local calendar day for iso and for bare Dates in any zone', () => {
+    // A local-midnight Date must never come back as the previous UTC day.
+    const local = new Date(2026, 0, 1);
+    expect(applyFilters(local, [{ name: 'date', args: { style: 'iso' } }], en)).toBe('2026-01-01');
+    expect(toText(local)).toBe('2026-01-01');
+  });
+
+  it('returns invalid dates and numbers unchanged instead of throwing', () => {
+    expect(applyFilters(NaN, [{ name: 'date' }], en)).toBeNaN();
+    expect(applyFilters(1e20, [{ name: 'date' }], en)).toBe(1e20);
+    expect(applyFilters('not a date', [{ name: 'date', args: { style: 'long' } }], en)).toBe('not a date');
+    expect(toText(new Date('garbage'))).toBe('');
+  });
+
   it('leaves non-numeric input alone', () => {
     expect(applyFilters('n/a', [{ name: 'currency', args: { code: 'GHS' } }], en)).toBe('n/a');
   });

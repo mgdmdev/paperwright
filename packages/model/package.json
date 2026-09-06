@@ -1,6 +1,6 @@
 {
   "name": "@docform/model",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "The docform document model: types, schema, binding evaluator, migrations",
   "license": "MIT",
   "type": "module",
@@ -14,7 +14,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {

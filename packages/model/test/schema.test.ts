@@ -27,6 +27,20 @@ describe('validateModel', () => {
     ]);
   });
 
+  it('rejects an unknown filter inside an inline binding with its path', () => {
+    const result = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'heading', level: 1, text: '{{ name | trim }}' }] });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.some((i) => i.path === 'blocks.0.text' && /Unknown filter "trim"/.test(i.message))).toBe(true);
+  });
+
+  it('rejects table column widths that exceed the table', () => {
+    const result = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'table', columns: [{ key: 'a', header: 'A', width: 0.6 }, { key: 'b', header: 'B', width: 0.6 }], rows: [] }] });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.map((i) => i.message)).toContain('Column widths add up to more than 1');
+  });
+
   it('rejects an unknown block type at the schema level', () => {
     const result = validateModel({ ...invoiceModel, blocks: [{ id: 'x', type: 'video' }] });
     expect(result.ok).toBe(false);

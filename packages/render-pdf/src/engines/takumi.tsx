@@ -24,6 +24,7 @@ export function createTakumiEngine(): DocumentEngine {
       repeatingTableHeader: true,
       pageNumbers: true,
       pdfA: true,
+      svg: true,
       bidi: false,
       browser: true,
     },
@@ -40,11 +41,13 @@ export function createTakumiEngine(): DocumentEngine {
       const size = { width: px(doc.page.width), height: px(doc.page.height) };
       const { top, right, bottom, left } = doc.page.margins;
 
+      // pre-line makes a newline in model text break the line, as Forme does natively.
       const band = (tree: ReactElement, edge: 'top' | 'bottom') => (
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
+            whiteSpace: 'pre-line',
             paddingLeft: px(left),
             paddingRight: px(right),
             paddingTop: edge === 'top' ? px(BAND_GAP_PT) : 0,
@@ -60,13 +63,18 @@ export function createTakumiEngine(): DocumentEngine {
       const footerHeight = footer ? (await measure(footer, { size, ...shared })).height : 0;
 
       const body = (
-        <div style={{ display: 'flex', flexDirection: 'column', fontFamily: doc.fontFamilies.join(', ') }}>{doc.body}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', whiteSpace: 'pre-line', fontFamily: doc.fontFamilies.join(', ') }}>
+          {doc.body}
+        </div>
       );
       const metadata: NonNullable<RenderOptions['metadata']> = {};
       if (doc.metadata.title) metadata.title = doc.metadata.title;
       if (doc.metadata.subject) metadata.description = doc.metadata.subject;
       if (doc.metadata.author) metadata.authors = [doc.metadata.author];
       metadata.creator = doc.metadata.creator ?? 'docform';
+      // PDF/A validation refuses a document without a creation date.
+      const creationDate = doc.metadata.creationDate ?? (doc.pdfA ? new Date().toISOString().slice(0, 19) : undefined);
+      if (creationDate) metadata.creationDate = creationDate;
 
       const options: RenderOptions = {
         size,

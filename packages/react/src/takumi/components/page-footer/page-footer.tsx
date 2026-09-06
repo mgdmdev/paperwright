@@ -480,5 +480,5 @@ export const PageFooter = ({
   };
 
   const node = variantRenderers[variant]() as React.ReactNode;
-  return _isFixed ? <View fixed>{node}</View> : node;
+  return _isFixed ? <View fixed style={{ bottom: 0, left: 0, right: 0 }}>{node}</View> : node;
 };

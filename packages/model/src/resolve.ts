@@ -98,9 +98,8 @@ function resolveRich(ctx: Ctx, rich: RichText): RichText {
 function asArray(ctx: Ctx, path: string, blockId: string): unknown[] {
   const value = lookup(ctx, path);
   if (Array.isArray(value)) return value;
-  if (value !== undefined && value !== null) {
-    ctx.warnings.push(`Block "${blockId}": "${path}" is not an array`);
-  }
+  if (value === undefined) ctx.warnings.push(`No value for "${path}"`);
+  else if (value !== null) ctx.warnings.push(`Block "${blockId}": "${path}" is not an array`);
   return [];
 }
 

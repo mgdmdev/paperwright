@@ -16,7 +16,7 @@ export interface RenderPdfOptions {
    * theme's own families (the host must register them).
    */
   fontFamily?: string | null;
-  metadata?: { title?: string; author?: string; subject?: string; creator?: string };
+  metadata?: { title?: string; author?: string; subject?: string; creator?: string; creationDate?: string };
   pdfA?: boolean;
 }
 
@@ -43,15 +43,21 @@ export async function renderPdf(input: RenderInput, options: RenderPdfOptions): 
   for (const asset of input.model.assets) {
     const data = assetBytes.get(asset.hash);
     if (!data) continue;
+    if (asset.mime === 'image/svg+xml' && !engine.capabilities.svg) {
+      warnings.push(`Asset ${asset.hash} is SVG, which the ${engine.name} engine cannot draw`);
+      continue;
+    }
     const image: EngineImage = { src: asset.hash, mime: asset.mime, data };
     images.push(image);
     srcByHash.set(asset.hash, engine.imageSrc(image));
   }
 
+  const page = pageGeometry(input.model);
   const ctx: CompileContext = {
     base: engine.base,
     theme,
     assetSrc: (hash) => srcByHash.get(hash),
+    contentWidth: page.width - page.margins.left - page.margins.right,
     warnings,
   };
 
@@ -64,7 +70,7 @@ export async function renderPdf(input: RenderInput, options: RenderPdfOptions): 
     body,
     header,
     footer,
-    page: pageGeometry(input.model),
+    page,
     fonts,
     fontFamilies: family && !families.includes(family) ? [family, ...families] : families,
     images,

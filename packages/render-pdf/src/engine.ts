@@ -16,6 +16,8 @@ export interface EngineCapabilities {
   repeatingTableHeader: boolean;
   pageNumbers: boolean;
   pdfA: boolean;
+  /** Draws SVG image assets. */
+  svg: boolean;
   bidi: boolean;
   /** Runs in a browser worker as well as on the server. */
   browser: boolean;
@@ -47,6 +49,8 @@ export interface DocumentMetadata {
   author?: string;
   subject?: string;
   creator?: string;
+  /** UTC, `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS`. PDF/A requires one; supplying it keeps output deterministic. */
+  creationDate?: string;
   /** BCP 47. */
   lang: string;
 }

@@ -1,5 +1,6 @@
+import { View } from "@formepdf/react";
 import type { Style } from "@formepdf/react";
-import { createContext, isValidElement, useContext } from "react";
+import { Fragment, createContext, isValidElement, useContext } from "react";
 import type { DependencyList, ReactNode } from "react";
 
 import { professionalTheme } from "../../themes/professional";
@@ -51,14 +52,16 @@ const hasDispatcher = (): boolean => {
   }
 };
 
+/**
+ * Under a bare walk the provider cannot expand its child itself (Forme resolves whatever element it
+ * returns), so it returns a single element unchanged and wraps anything else, arrays and fragments
+ * included, in a View that Forme serializes by identity.
+ */
 const expandBare = (children: ReactNode): ReactNode => {
-  if (!isValidElement(children) || typeof children.type !== "function") {
+  if (isValidElement(children) && children.type !== Fragment) {
     return children;
   }
-  if ((children.type as { __formeType?: string }).__formeType === "Document") {
-    return children;
-  }
-  return (children.type as (props: unknown) => ReactNode)(children.props);
+  return <View>{children}</View>;
 };
 
 export const PdfcnThemeProvider = ({

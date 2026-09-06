@@ -53,6 +53,14 @@ describe('resolveDocument', () => {
     expect(empty.warnings).toContain('No value for "invoice.number"');
   });
 
+  it('warns when a repeat or dataTable path is missing instead of silently rendering nothing', () => {
+    const typo = resolveDocument({
+      model: { ...invoiceModel, blocks: [{ id: 'r', type: 'repeat', forEach: 'invoice.lnies', as: 'l', blocks: [] }, { id: 't', type: 'dataTable', rowBinding: 'nope', columns: [{ key: 'a', header: 'A', cell: '{{ a }}' }] }] },
+      data: invoiceData,
+    });
+    expect(typo.warnings).toEqual(['No value for "invoice.lnies"', 'No value for "nope"']);
+  });
+
   it('honours a render-time locale override', () => {
     const fr = resolveDocument({ model: invoiceModel, data: invoiceData, locale: 'fr-FR' });
     const meta = fr.blocks[1];

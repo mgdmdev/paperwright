@@ -1,6 +1,6 @@
 {
   "name": "@docform/render-pdf",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Render a docform document model to PDF through an engine adapter (Forme, Takumi)",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,8 @@
   "files": [
     "dist",
     "fonts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {

@@ -8,9 +8,16 @@ type FilterFn = (value: unknown, args: Record<string, string>, ctx: FilterContex
 
 const DATE_STYLES = new Set(['short', 'medium', 'long', 'full']);
 
+/** The local calendar day, which is what toDate() built for a bare date; toISOString() would give the UTC day. */
+const isoDay = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 function toDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  if (typeof value === 'number') return new Date(value);
+  if (typeof value === 'number') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
   if (typeof value === 'string' && value.trim()) {
     // A bare calendar date is a local date, not midnight UTC shifted into yesterday.
     const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -35,7 +42,7 @@ const FILTERS: Record<Filter['name'], FilterFn> = {
     const date = toDate(value);
     if (!date) return value;
     const style = args.style ?? 'medium';
-    if (style === 'iso') return date.toISOString().slice(0, 10);
+    if (style === 'iso') return isoDay(date);
     if (style === 'time') return new Intl.DateTimeFormat(ctx.locale, { timeStyle: 'short' }).format(date);
     if (style === 'datetime') {
       return new Intl.DateTimeFormat(ctx.locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
@@ -80,7 +87,7 @@ export function toText(value: unknown): string {
   if (value === undefined || value === null) return '';
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : isoDay(value);
   if (Array.isArray(value)) return value.map(toText).join(', ');
   return JSON.stringify(value);
 }

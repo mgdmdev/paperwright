@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import * as Forme from '@formepdf/react';
 import { forme, takumi, themePresets } from '@docform/react';
@@ -11,6 +10,8 @@ export interface CompileContext {
   theme: PdfcnTheme;
   /** Resolves an asset hash to the src the engine reads, or undefined when the asset is missing. */
   assetSrc: (hash: string) => string | undefined;
+  /** Width of the page content box in points; tables size their columns from it. */
+  contentWidth: number;
   warnings: string[];
 }
 
@@ -147,20 +148,13 @@ function compileBlock(block: ResolvedBlock, ctx: CompileContext): ReactNode {
 const isPlain = (span: Span) => !span.bold && !span.italic && !span.underline && !span.color && !span.link;
 
 export function compileSpans(spans: Span[], ctx: CompileContext): ReactNode {
-  if (spans.every(isPlain)) return lines(spans.map((s) => s.text as string).join(''), ctx);
+  if (spans.every(isPlain)) return spans.map((s) => s.text as string).join('');
   return spans.map((span, i) => compileSpan(span, i, ctx));
-}
-
-/** Takumi lays text out like HTML, so a newline only breaks the line as <br />; Forme keeps it. */
-function lines(text: string, ctx: CompileContext): ReactNode {
-  if (ctx.base === 'forme' || !text.includes('\n')) return text;
-  const parts = text.split('\n');
-  return parts.flatMap((part, i) => (i === 0 ? [part] : [<br key={`br${i}`} />, part]));
 }
 
 function compileSpan(span: Span, key: number, ctx: CompileContext): ReactNode {
   const text = span.text as string;
-  if (isPlain(span)) return <Fragment key={key}>{lines(text, ctx)}</Fragment>;
+  if (isPlain(span)) return text;
   const link = span.link as string | undefined;
   if (ctx.base === 'forme') {
     const style: Record<string, unknown> = {};
@@ -185,11 +179,11 @@ function compileSpan(span: Span, key: number, ctx: CompileContext): ReactNode {
   if (span.color) style.color = span.color;
   return link ? (
     <a key={key} href={link} style={style}>
-      {lines(text, ctx)}
+      {text}
     </a>
   ) : (
     <span key={key} style={style}>
-      {lines(text, ctx)}
+      {text}
     </span>
   );
 }
@@ -219,11 +213,22 @@ const stripLayout = (style: Style): Style => Object.fromEntries(Object.entries(s
 
 const merge = (...styles: (Style | undefined)[]): Style => Object.assign({}, ...styles.filter((s): s is Style => s !== undefined));
 
-/** Fractions for every column: declared widths first, the rest shared equally. */
-export function columnFractions(columns: TableColumn[]): number[] {
+/**
+ * Fractions for every column: declared widths first, the rest shared equally. Widths that add up
+ * to more than the table (the schema rejects them, but a model can still arrive unvalidated) are
+ * treated as weights and scaled, so no column vanishes.
+ */
+export function columnFractions(columns: TableColumn[], warn?: (message: string) => void): number[] {
   const declared = columns.reduce((sum, c) => sum + (c.width ?? 0), 0);
   const open = columns.filter((c) => c.width === undefined).length;
-  const share = open ? Math.max(0, 1 - declared) / open : 0;
+  if (declared > 1.0001) {
+    warn?.(`column widths add up to ${declared.toFixed(2)}; scaled to fit`);
+    const mean = declared / (columns.length - open || 1);
+    const weights = columns.map((c) => c.width ?? mean);
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    return weights.map((w) => w / total);
+  }
+  const share = open ? (1 - declared) / open : 0;
   return columns.map((c) => c.width ?? share);
 }
 
@@ -232,7 +237,7 @@ function compileTable(block: TableBlock, ctx: CompileContext): ReactNode {
   const styles = C.createTableStyles(ctx.theme) as unknown as Record<keyof TableStyles, Style>;
   const variant = block.variant ?? 'line';
   const keys = VARIANT_KEYS[variant];
-  const fractions = columnFractions(block.columns);
+  const fractions = columnFractions(block.columns, (m) => ctx.warnings.push(`Block "${block.id}": ${m}`));
   const zebra = variant === 'striped';
 
   const tableStyle = merge(stripLayout(styles.table), stripLayout(styles[keys.table]));
@@ -278,17 +283,14 @@ function compileTable(block: TableBlock, ctx: CompileContext): ReactNode {
   }
 
   const css = (s: Style) => takumi.primitives.flatten(s) as CSSProperties;
+  // Takumi ignores <col> widths; a width on the header cell sizes the column. Points → CSS px.
+  const columnPx = (i: number) => Math.round((fractions[i] ?? 0) * ctx.contentWidth * takumi.primitives.PDF_POINT_TO_CSS_PIXEL * 100) / 100;
   return (
     <table key={block.id} style={{ ...css(tableStyle), borderCollapse: 'collapse', width: '100%' }}>
-      <colgroup>
-        {fractions.map((f, i) => (
-          <col key={i} style={{ width: `${(f * 100).toFixed(2)}%` }} />
-        ))}
-      </colgroup>
       <thead>
         <tr style={css(headerRowStyle)}>
           {block.columns.map((col, i) => (
-            <th key={col.key} style={{ textAlign: col.align ?? 'left', ...css(cellStyle(i, col.align)), fontWeight: 'inherit' }}>
+            <th key={col.key} style={{ textAlign: col.align ?? 'left', ...css(cellStyle(i, col.align)), fontWeight: 'inherit', width: columnPx(i) }}>
               <span style={css(headerText)}>{col.header as string}</span>
             </th>
           ))}

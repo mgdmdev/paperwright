@@ -4,7 +4,13 @@ import type { FontRegistration } from '@formepdf/react';
 import { forme } from '@docform/react';
 import type { DocumentEngine, EngineDocument, EngineImage } from '../engine';
 
-const toDataUri = (image: EngineImage): string => `data:${image.mime};base64,${Buffer.from(image.data).toString('base64')}`;
+const toBase64 = (bytes: Uint8Array): string => {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+};
+
+const toDataUri = (image: EngineImage): string => `data:${image.mime};base64,${toBase64(image.data)}`;
 
 /**
  * Forme: pages, fixed bands and repeating table headers are native, page numbers are text
@@ -20,6 +26,7 @@ export function createFormeEngine(): DocumentEngine {
       repeatingTableHeader: true,
       pageNumbers: true,
       pdfA: true,
+      svg: false,
       bidi: true,
       browser: true,
     },

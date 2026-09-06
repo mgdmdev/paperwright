@@ -1,0 +1,4 @@
+docform vendors the document component layer of pdfcn (https://github.com/shadcn-labs/pdfcn),
+MIT License, Copyright (c) shadcn-labs and contributors. The vendored files live under
+packages/react/src/{takumi,forme,themes,types} and carry docform's fixes; upstream fixes are
+contributed back where they apply.

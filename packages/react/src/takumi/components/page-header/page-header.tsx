@@ -582,5 +582,5 @@ export const PageHeader = ({
 
   const node = variantRenderers[variant]() as React.ReactNode;
   // Takumi repeats a position: fixed box on every page; the View primitive maps `fixed` to it.
-  return fixed ? <View fixed>{node}</View> : node;
+  return fixed ? <View fixed style={{ left: 0, right: 0, top: 0 }}>{node}</View> : node;
 };

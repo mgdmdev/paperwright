@@ -73,6 +73,10 @@ const makeDispatcher = (contexts: Contexts) => {
     useActionState: (_a: unknown, initial: unknown) => [initial, noop, false],
     useSyncExternalStore: (_s: unknown, getSnapshot: () => unknown, getServer?: () => unknown) => (getServer ?? getSnapshot)(),
     useId: () => `:r${ids++}:`,
+    useEffectEvent: (fn: unknown) => fn,
+    useFormState: (_a: unknown, initial: unknown) => [initial, noop, false],
+    // React Compiler output asks for a memo cache; a fresh sentinel-filled one is what a first render gets.
+    useMemoCache: (size: number) => new Array<unknown>(size).fill(Symbol.for("react.memo_cache_sentinel")),
     useCacheRefresh: () => noop,
     useHostTransitionStatus: () => ({ pending: false, data: null, method: null, action: null }),
   };
@@ -139,8 +143,9 @@ const resolveElement = (element: ReactElement, contexts: Contexts): ReactNode =>
   // A primitive (or a host string, which Forme rejects with its own message): keep it, resolve its children.
   const props = element.props as Record<string, unknown>;
   if (!("children" in props)) return element;
-  const resolvedChildren = resolveNode(props.children as ReactNode, contexts);
-  return React.cloneElement(element, undefined, ...(Array.isArray(resolvedChildren) ? resolvedChildren : [resolvedChildren]));
+  // Passed as a prop, not as variadic children: an empty array must still replace the originals.
+  const children = resolveNode(props.children as ReactNode, contexts);
+  return React.cloneElement(element, { children } as Partial<typeof props>);
 };
 
 const resolveProvider = (element: ReactElement, context: unknown, contexts: Contexts): ReactNode => {

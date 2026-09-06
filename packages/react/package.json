@@ -1,6 +1,6 @@
 {
   "name": "@docform/react",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Document components for Forme and Takumi, with themes (vendored from pdfcn)",
   "license": "MIT",
   "type": "module",
@@ -14,7 +14,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "sideEffects": false,
   "scripts": {
