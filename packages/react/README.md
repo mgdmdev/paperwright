@@ -1,6 +1,6 @@
 # @paperwright/react
 
-The document component layer docform renders with, for both engines, plus the themes.
+The document component layer paperwright renders with, for both engines, plus the themes.
 
 ```ts
 import { forme, takumi, themePresets } from '@paperwright/react';
@@ -12,7 +12,7 @@ import { forme, takumi, themePresets } from '@paperwright/react';
 built-in themes; every component reads the theme from `PdfcnThemeProvider`.
 
 The components are vendored from [pdfcn](https://github.com/shadcn-labs/pdfcn) (MIT). Changes
-docform carries on top of upstream:
+paperwright carries on top of upstream:
 
 - **Theme provider on React context.** Upstream kept the active theme in a module-level variable,
   which breaks under concurrent renders and nested providers. Both bases now use `createContext`,

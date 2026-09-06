@@ -1,4 +1,4 @@
-# docform
+# paperwright
 
 One document model, rendered to PDF through pluggable engines, with a React component layer
 built on [pdfcn](https://github.com/shadcn-labs/pdfcn). A template is JSON: blocks, bindings into

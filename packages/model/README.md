@@ -1,6 +1,6 @@
 # @paperwright/model
 
-The docform document model. A template is data: this package defines its shape, validates it,
+The paperwright document model. A template is data: this package defines its shape, validates it,
 resolves bindings against your data, and migrates older versions forward. It has no React and no
 rendering engine, so it runs anywhere: a server, a browser, a worker.
 

@@ -71,7 +71,7 @@ export function createTakumiEngine(): DocumentEngine {
       if (doc.metadata.title) metadata.title = doc.metadata.title;
       if (doc.metadata.subject) metadata.description = doc.metadata.subject;
       if (doc.metadata.author) metadata.authors = [doc.metadata.author];
-      metadata.creator = doc.metadata.creator ?? 'docform';
+      metadata.creator = doc.metadata.creator ?? 'paperwright';
       // PDF/A validation refuses a document without a creation date.
       const creationDate = doc.metadata.creationDate ?? (doc.pdfA ? new Date().toISOString().slice(0, 19) : undefined);
       if (creationDate) metadata.creationDate = creationDate;

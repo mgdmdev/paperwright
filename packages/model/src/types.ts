@@ -1,5 +1,5 @@
 /**
- * The docform document model.
+ * The paperwright document model.
  *
  * A template is data. This file is the contract every other package renders from, edits, or
  * imports into, so it changes under semver more strictly than any code: a breaking change here

@@ -2,7 +2,7 @@
   "name": "paperwright-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "docform \u2014 one document model, a builder, and renderers to PDF and DOCX. Built on pdfcn.",
+  "description": "paperwright \u2014 one document model, a builder, and renderers to PDF and DOCX. Built on pdfcn.",
   "license": "MIT",
   "packageManager": "pnpm@11.19.0",
   "engines": {

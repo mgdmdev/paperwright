@@ -1,7 +1,7 @@
 {
   "name": "@paperwright/render-pdf",
   "version": "0.0.0",
-  "description": "Render a docform document model to PDF through an engine adapter (Forme, Takumi)",
+  "description": "Render a paperwright document model to PDF through an engine adapter (Forme, Takumi)",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

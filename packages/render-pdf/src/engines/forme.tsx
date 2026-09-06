@@ -43,7 +43,7 @@ export function createFormeEngine(): DocumentEngine {
           title={doc.metadata.title}
           author={doc.metadata.author}
           subject={doc.metadata.subject}
-          creator={doc.metadata.creator ?? 'docform'}
+          creator={doc.metadata.creator ?? 'paperwright'}
           lang={doc.metadata.lang}
           fonts={fonts}
           pdfa={doc.pdfA ? '2b' : undefined}

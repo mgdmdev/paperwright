@@ -1,7 +1,7 @@
 {
   "name": "@paperwright/model",
   "version": "0.0.0",
-  "description": "The docform document model: types, schema, binding evaluator, migrations",
+  "description": "The paperwright document model: types, schema, binding evaluator, migrations",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

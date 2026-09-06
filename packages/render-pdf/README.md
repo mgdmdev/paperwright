@@ -1,6 +1,6 @@
 # @paperwright/render-pdf
 
-Renders a docform model to PDF through an engine adapter.
+Renders a paperwright model to PDF through an engine adapter.
 
 ```ts
 import { createFormeEngine, createTakumiEngine, renderPdf } from '@paperwright/render-pdf';
