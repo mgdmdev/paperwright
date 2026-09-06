@@ -34,9 +34,9 @@ continues onto, styled from the theme's table styles.
 
 The components (`Heading`, `Text`, `KeyValue`, `PdfList`, `PdfImage`, `PdfQRCode`,
 `PdfSignatureBlock`, `PageNumber`, `PdfWatermark`, `Section`, `KeepTogether`, `Divider`) and the
-two themes (`professional`, `minimal`) are vendored from [pdfcn](https://github.com/shadcn-labs/pdfcn)'s
-Forme base (MIT, see `NOTICE`), trimmed to what the compiler uses. Changes carried on top of
-upstream:
+two themes (`professional`, `minimal`) are adapted from [pdfcn](https://github.com/shadcn-labs/pdfcn)'s
+Forme base (MIT, Copyright (c) 2026 Shadcn Labs; see `NOTICE`), trimmed to what the compiler uses.
+Each derived file carries a provenance line. Changes on top of upstream:
 
 - **Theme provider on React context.** Upstream kept the active theme in a module-level variable,
   which breaks under concurrent renders and nested providers.

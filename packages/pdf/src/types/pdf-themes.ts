@@ -1,3 +1,4 @@
+// Adapted from pdfcn (https://github.com/shadcn-labs/pdfcn), MIT, Copyright (c) 2026 Shadcn Labs. See NOTICE.
 /**
  * pdfcn Theme System — Type Definitions
  *

@@ -11,8 +11,8 @@ template that uses it and a golden test that pins its output.
 - `@paperwright/model`: types, Zod schema, `{{ var | filter }}` bindings with Intl-backed
   filters, the resolver (repeat, if, dataTable, columns), warnings instead of throws, a
   version field with the migration machinery in place.
-- `@paperwright/pdf`: Forme engine behind a `DocumentEngine` seam, the component layer
-  vendored from pdfcn's Forme base, two themes plus per-render theme objects and overrides,
+- `@paperwright/pdf`: Forme engine behind a `DocumentEngine` seam, a component layer adapted
+  from pdfcn's Forme base, two themes plus per-render theme objects and overrides,
   fixed header and footer bands, page numbers, repeating table headers, bundled Inter.
 - Golden tests: the text layer of every example, read back through pdf.js.
 

@@ -1,3 +1,4 @@
+// Adapted from pdfcn (https://github.com/shadcn-labs/pdfcn), MIT, Copyright (c) 2026 Shadcn Labs. See NOTICE.
 import { Watermark as FormeWatermark } from "@formepdf/react";
 
 import { usePdfcnTheme } from "../theme-provider";

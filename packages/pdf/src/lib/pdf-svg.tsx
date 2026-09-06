@@ -1,3 +1,4 @@
+// Adapted from pdfcn (https://github.com/shadcn-labs/pdfcn), MIT, Copyright (c) 2026 Shadcn Labs. See NOTICE.
 import { Svg as FormeSvg } from "@formepdf/react";
 import {
   Children,

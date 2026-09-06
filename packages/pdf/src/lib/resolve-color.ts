@@ -1,3 +1,4 @@
+// Adapted from pdfcn (https://github.com/shadcn-labs/pdfcn), MIT, Copyright (c) 2026 Shadcn Labs. See NOTICE.
 import type { ColorTokens } from "../types/pdf-themes";
 
 /** Theme color token keys that can be used for the color prop */

@@ -1,7 +1,7 @@
 {
   "name": "@paperwright/pdf",
   "version": "0.1.0",
-  "description": "Renders a paperwright document model to PDF: the Forme engine, the component layer and themes, bundled Inter",
+  "description": "Renders a paperwright document model to PDF: the Forme engine, a component layer adapted from pdfcn, two themes, bundled Inter",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

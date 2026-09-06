@@ -17,7 +17,7 @@ const { bytes, warnings } = await renderPdf({ model, data: { invoice: { number: 
 | Package | What it is |
 |---|---|
 | [`@paperwright/model`](packages/model) | The document model: types, Zod schema, binding syntax and filters, resolver. No React, no engine. |
-| [`@paperwright/pdf`](packages/pdf) | Renders a model to PDF through Forme, with the component layer (built on [pdfcn](https://github.com/shadcn-labs/pdfcn)), two themes and the Inter font. |
+| [`@paperwright/pdf`](packages/pdf) | Renders a model to PDF through Forme, with a component layer adapted from [pdfcn](https://github.com/shadcn-labs/pdfcn), two themes and the Inter font. |
 | [`examples/basic`](examples/basic) | Four JSON templates (invoice, letter, payslip, certificate) with data, rendered by `pnpm examples`. |
 | [`apps/playground`](apps/playground) | A local page to try templates: edit the template and data as JSON, see the PDF re-render as you type. `pnpm playground`. |
 
@@ -37,9 +37,9 @@ after editing `@paperwright/model`.
 
 ## Licence
 
-MIT. The component layer under `packages/pdf/src/{components,lib,themes,types}` is vendored from
-pdfcn (MIT, see `NOTICE`). Inter is shipped under the SIL Open Font License
-(`packages/pdf/fonts/LICENSE-Inter.txt`).
+MIT, Copyright (c) 2026 paperwright contributors. Parts of `packages/pdf/src` are adapted from
+pdfcn (MIT, Copyright (c) 2026 Shadcn Labs) and Inter ships under the SIL Open Font License; both
+are listed in `NOTICE`.
 
 ## Roadmap
 

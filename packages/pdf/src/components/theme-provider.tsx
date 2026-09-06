@@ -1,3 +1,4 @@
+// Originally from pdfcn (https://github.com/shadcn-labs/pdfcn), MIT, Copyright (c) 2026 Shadcn Labs; rewritten for paperwright. See NOTICE.
 import { View } from "@formepdf/react";
 import type { Style } from "@formepdf/react";
 import { Fragment, createContext, isValidElement, useContext } from "react";
