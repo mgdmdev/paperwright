@@ -1,0 +1,32 @@
+{
+  "name": "@docform/render-pdf",
+  "version": "0.1.0",
+  "description": "Render a docform document model to PDF through an engine adapter (Forme, Takumi)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@docform/model": "workspace:*",
+    "@docform/react": "workspace:*"
+  }
+}
