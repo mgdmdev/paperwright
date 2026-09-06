@@ -140,8 +140,11 @@ export function componentToBlock(c: Component): Block {
     }
     case 'Text':
       return { id, type: 'text', rich: rich(p) };
-    case 'Divider':
-      return { id, type: 'divider', variant: (p.variant as 'solid' | 'dashed') ?? 'solid' };
+    case 'Divider': {
+      const b: Block = { id, type: 'divider' };
+      if (p.variant === 'dashed') b.variant = 'dashed';
+      return b;
+    }
     case 'Image': {
       const b: Block = { id, type: 'image', assetHash: str(p.assetHash) };
       if (num(p.width)) b.width = num(p.width);
